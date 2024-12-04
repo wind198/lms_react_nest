@@ -9,13 +9,40 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@decorators/*": [
+        "./src/common/decorators/*"
+      ],
+      "@guards/*": [
+        "./src/common/guards/*"
+      ],
+      "@interceptors/*": [
+        "./src/common/interceptors/*"
+      ],
+     
+      "@types/*": [
+        "./src/common/types/*"
+      ],
+      "@pipes/*": [
+        "./src/common/pipes/*"
+      ],
+      "@dtos/*": [
+        "./src/common/dtos/*"
+      ],
+      "@resources/*": [
+        "./src/resources/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+    },
   }
 }

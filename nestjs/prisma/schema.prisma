@@ -25,27 +25,125 @@ enum GENDER {
   FEMALE
 }
 
+enum EDUCATION_BACKGROUND {
+  OTHERS
+  HIGH_SCHOOL
+  UNIVERSITY_STUDENT
+  GRADUATED
+  MASTER
+  PHD
+}
+
 model User {
-  id                   Int      @id @default(autoincrement())
-  email                String   @unique
+  id                   Int                  @id @default(autoincrement())
+  is_active             Boolean              @default(false)
+  first_name           String
+  last_name            String
+  email                String               @unique
   password             String
-  phone                String
-  address              String   @db.Text()
-  education_background String
+  phone                String?
+  address              String?              @db.Text()
+  education_background EDUCATION_BACKGROUND
   user_type            UserType
-  dob                  DateTime @db.Date()
+  dob                  DateTime             @db.Date()
   gender               GENDER
+  generation_id        Int?
+  generation           Generation?          @relation(fields: [generation_id], references: [id], onDelete: Restrict)
+  created_at           DateTime             @default(now())
+  updated_at           DateTime             @updatedAt
+  deleted_at           DateTime             @updatedAt
 }
 
 model Generation {
-  id    Int    @id @default(autoincrement())
-  title String
-  description String @db.Text()
-  year  Int    @db.Year
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text()
+  year        Int      @db.Year
+  students    User[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime @updatedAt
 }
 
 model Major {
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   title       String
-  description String @db.Text()
+  description String   @db.Text()
+  Course      Course[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime @updatedAt
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text()
+  major_id    Int
+  major       Major    @relation(fields: [major_id], references: [id])
+  Class       Class[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime @updatedAt
+}
+
+model Room {
+  id              Int         @id @default(autoincrement())
+  title           String
+  description     String      @db.Text()
+  address         String      @db.Text()
+  room_setting_id Int
+  room_setting    RoomSetting @relation(fields: [room_setting_id], references: [id])
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+}
+
+model RoomSetting {
+  id                Int            @id @default(autoincrement())
+  title             String
+  description       String         @db.Text()
+  dates_off         Json
+  capacity          Int
+  room_optime_times RoomOpenTime[]
+  rooms             Room[]
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+}
+
+model RoomOpenTime {
+  id              Int         @id @default(autoincrement())
+  week_days       Json
+  start_time      DateTime    @db.Time()
+  end_time        DateTime    @db.Time()
+  room_setting_id Int
+  room_setting    RoomSetting @relation(fields: [room_setting_id], references: [id], onDelete: Cascade)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+}
+
+model Class {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text()
+  code        String?
+  course_id   Int
+  course      Course   @relation(fields: [course_id], references: [id], onDelete: Restrict)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime @updatedAt
+}
+
+enum TempKeyPurpose {
+  RESET_PASSWORD
+  API_TOKEN
+  ACTIVATE_USER
+}
+
+model TempKey {
+  id          Int            @id @default(autoincrement())
+  purpose     TempKeyPurpose
+  value       String         @db.Text()
+  description String?        @db.Text()
+  created_at  DateTime       @default(now())
+  expired_at  DateTime
 }
