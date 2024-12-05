@@ -1,59 +1,59 @@
-import useApiHttpClient from '@/composables/useHttpClient'
-import { ISearchParams } from '@/stores/query'
+import useApiHttpClient from "@/composables/useHttpClient";
+import { ISearchParams } from "@/stores/query";
 import {
   IHasId,
   IHasResource,
   IPaginatedData,
   IQueryListParamsAsRefs,
-} from '@/lib/types/common.type'
-import { IGeneration } from '@/lib/types/entities/generation.entity'
+} from "@/lib/types/common.type";
+import { IGeneration } from "@/lib/types/entities/generation.entity";
 import {
   DEFAULT_ORDER,
   DEFAULT_ORDER_BY,
   DEFAULT_PAGE,
   DEFAULT_PER_PAGE,
-} from '@/utils/constants'
-import { apiPrefix } from '@/utils/helpers'
-import { keepPreviousData, useQuery } from '@tanstack/vue-query'
-import { AxiosError } from 'axios'
-import dayjs from 'dayjs'
-import { isEmpty, set } from 'lodash-es'
+} from "@/utils/constants";
+import { apiPrefix } from "@/utils/helpers";
+import { keepPreviousData, useQuery } from "@tanstack/vue-query";
+import { AxiosError } from "axios";
+import dayjs from "dayjs";
+import { isEmpty, set } from "lodash-es";
 
-type ISearchParamsFilter = ISearchParams['filter']
+type ISearchParamsFilter = ISearchParams["filter"];
 
 type IUseGetListOptions = IHasResource &
   Partial<IQueryListParamsAsRefs> & {
-    generateAugmentedFilter?: (filter: ISearchParamsFilter) => {}
-  }
+    generateAugmentedFilter?: (filter: ISearchParamsFilter) => {};
+  };
 
 const defaultAugmentedFilterGenerator = (filter: ISearchParamsFilter) => {
   if (isEmpty(filter)) {
-    return {}
+    return {};
   }
 
-  const augmentedFilter = {} as Record<string, any>
+  const augmentedFilter = {} as Record<string, any>;
 
   for (const k in filter) {
-    const element = filter[k]
-    if (['created_at'].includes(k)) {
-      const { gte, lte } = element
+    const element = filter[k];
+    if (["created_at"].includes(k)) {
+      const { gte, lte } = element;
       Object.entries({ gte, lte })
         .filter((x) => x[1])
         .forEach(([x, y]) => {
-          if (x === 'gte') {
-            y = dayjs(y).startOf('day').toDate()
+          if (x === "gte") {
+            y = dayjs(y).startOf("day").toDate();
           } else {
-            y = dayjs(y).endOf('day').toDate()
+            y = dayjs(y).endOf("day").toDate();
           }
-          set(augmentedFilter, [k, x], y)
-        })
+          set(augmentedFilter, [k, x], y);
+        });
     } else {
-      augmentedFilter[k] = element
+      augmentedFilter[k] = element;
     }
   }
 
-  return augmentedFilter
-}
+  return augmentedFilter;
+};
 
 export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
   const {
@@ -63,14 +63,14 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
     order_by,
     page,
     per_page,
-    resourcePlural = resource + 's',
+    resourcePlural = resource + "s",
     generateAugmentedFilter = defaultAugmentedFilterGenerator,
-  } = options
+  } = options;
 
-  const { $get } = useApiHttpClient()
+  const { $get } = useApiHttpClient();
 
   const fetchListPaging = async () => {
-    const augmentedFilter = generateAugmentedFilter(filter?.value ?? {})
+    const augmentedFilter = generateAugmentedFilter(filter?.value ?? {});
     const { data } = await $get<IPaginatedData<IGeneration>>(
       apiPrefix(resourcePlural),
       {
@@ -82,14 +82,14 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
           filter: augmentedFilter ?? {},
         },
       }
-    )
+    );
 
-    return data
-  }
+    return data;
+  };
 
   const data = useQuery<IPaginatedData<T>, AxiosError, IPaginatedData<T>>({
     queryKey: [
-      'generations',
+      "generations",
       {
         filter,
         order,
@@ -100,7 +100,7 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
     ],
     queryFn: fetchListPaging,
     placeholderData: keepPreviousData,
-  })
+  });
 
-  return { ...data }
+  return { ...data };
 }

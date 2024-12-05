@@ -36,10 +36,10 @@ enum EDUCATION_BACKGROUND {
 
 model User {
   id                   Int                  @id @default(autoincrement())
-  is_active             Boolean              @default(false)
+  is_active            Boolean              @default(false)
   first_name           String
   last_name            String
-  email                String               @unique
+  email                String
   password             String
   phone                String?
   address              String?              @db.Text()
@@ -51,7 +51,8 @@ model User {
   generation           Generation?          @relation(fields: [generation_id], references: [id], onDelete: Restrict)
   created_at           DateTime             @default(now())
   updated_at           DateTime             @updatedAt
-  deleted_at           DateTime             @updatedAt
+  deleted_at           DateTime?             @updatedAt
+  TempKey              TempKey[]
 }
 
 model Generation {
@@ -62,7 +63,6 @@ model Generation {
   students    User[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  deleted_at  DateTime @updatedAt
 }
 
 model Major {
@@ -72,7 +72,6 @@ model Major {
   Course      Course[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  deleted_at  DateTime @updatedAt
 }
 
 model Course {
@@ -84,7 +83,6 @@ model Course {
   Class       Class[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  deleted_at  DateTime @updatedAt
 }
 
 model Room {
@@ -130,7 +128,6 @@ model Class {
   course      Course   @relation(fields: [course_id], references: [id], onDelete: Restrict)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  deleted_at  DateTime @updatedAt
 }
 
 enum TempKeyPurpose {
@@ -146,4 +143,6 @@ model TempKey {
   description String?        @db.Text()
   created_at  DateTime       @default(now())
   expired_at  DateTime
+  user        User?          @relation(fields: [user_id], references: [id])
+  user_id     Int?
 }

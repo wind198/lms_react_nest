@@ -17,6 +17,7 @@ import { handleFilter } from '../../common/helpers';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
+import { omit } from 'lodash';
 
 @Controller('users')
 export class UsersController {
@@ -81,7 +82,7 @@ export class UsersController {
       page: pageNumber,
       per_page: pageSize,
       total,
-      data,
+      data: data.map((i) => omit(i, 'password')),
     };
   }
 
@@ -111,13 +112,19 @@ export class UsersController {
 
   @Delete('delete-many')
   removeMany(@Query() qr: ManyIdsDto) {
-    return this.usersService.userModel.deleteMany({
+    return this.usersService.userModel.updateMany({
       where: { id: { in: qr.ids } },
+      data: {
+        deleted_at: new Date().toISOString(),
+      },
     });
   }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.userModel.delete({ where: { id } });
+    return this.usersService.userModel.update({
+      where: { id },
+      data: { deleted_at: new Date().toISOString() },
+    });
   }
 }

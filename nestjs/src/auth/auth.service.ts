@@ -1,12 +1,23 @@
+import { Response } from 'express';
+import { renderToString } from 'react-dom/server';
+import { Request } from 'express';
 import { TempKeysService } from '@/temp-keys/temp-keys.service';
+import { MailerService } from '@nestjs-modules/mailer';
 import {
   BadRequestException,
   Inject,
   Injectable,
+  Res,
   forwardRef,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { TempKey, TempKeyPurpose, User } from '@prisma/client';
 import { UsersService } from '@resources/users/users.service';
+import { compare } from 'bcrypt';
+import { FE_ORIGIN, NODE_ENV } from '@/common/constants/config';
+import { createElement } from 'react';
+import ResetPassword from '@/template/reset-password';
+import moment from 'moment';
 
 @Injectable()
 export class AuthService {
@@ -23,24 +34,26 @@ export class AuthService {
     return await this.jwtService.signAsync(payload, options);
   }
 
-  async signIn(email: string, pass: string) {
-    const user = await this.usersService.findOneByEmail(email, true);
+  async login(email: string, pass: string) {
+    const user = await this.usersService.userModel.findFirst({
+      where: { email, deleted_at: null },
+    });
     if (!user) {
       throw new BadRequestException('Email not found');
     }
     if (!(await compare(pass, user.password))) {
       throw new BadRequestException('Password is incorrect');
     }
-    if (!user.isActive) {
+    if (!user.is_active) {
       throw new BadRequestException('Account is inactive');
     }
     const { id } = user;
     const token = await this.generateJwtToken({
       userId: id,
       email,
-      type: user.type,
+      type: user.user_type,
     });
-    const { password, ...o } = user.toObject();
+    const { password, ...o } = user;
 
     return {
       token,
@@ -48,33 +61,43 @@ export class AuthService {
     };
   }
 
-  async validateTempKey(key: string, keyType: ITempKeyType) {
+  logout(@Res() res: Response) {
+    res.clearCookie(REFRESH_TOKEN);
+    res.send();
+  }
+
+  async validateTempKey(key: number, purpose: TempKeyPurpose) {
     if (!key) {
       return false;
     }
-    const match = await this.tempKeyService.tempKeyModel.findById(key);
-    if (!match || match.type !== keyType) {
+    const match = await this.tempKeyService.tempKeysModel.findUnique({
+      where: { id: key },
+    });
+    if (!match || match.purpose !== purpose) {
       return false;
     }
     return match;
   }
 
-  async sendResetPasswordEmail(user: IUserDocument) {
-    const userFriendlyName = getUserFriendlyName(user);
+  async sendResetPasswordEmail(user: User) {
+    const userFriendlyName = this.usersService.getFullname(user);
 
-    const tempKey = await this.tempKeyService.tempKeyModel.create({
-      note: `Activation key for ${user.email}`,
-      type: 'reset-password',
-      value: 'placeholder',
-      user: user.id,
+    const tempKey = await this.tempKeyService.tempKeysModel.create({
+      data: {
+        description: `Activation key for ${user.email}`,
+        purpose: 'RESET_PASSWORD',
+        value: 'placeholder',
+        expired_at: moment().add(30, 'minutes').toISOString(),
+        user_id: user.id,
+      },
     });
 
-    const jwtPayload: FastifyRequest['user'] = {
+    const jwtPayload: Request['user'] = {
       userId: user.id,
       email: user.email,
-      type: user.type,
+      type: user.user_type,
       tempKeyData: {
-        tempKeyId: tempKey.id,
+        id: tempKey.id,
       },
     };
 
@@ -84,7 +107,7 @@ export class AuthService {
       expiresIn: expireAfter,
     });
 
-    const activationStr = `${FE_ORIGIN}/#/reset-password?reset-pass-key=${tempKey.id}`;
+    const activationStr = `${FE_ORIGIN}/auth/reset-password?reset-pass-key=${tempKey.id}`;
 
     const html = renderToString(
       createElement(ResetPassword, {
@@ -100,7 +123,10 @@ export class AuthService {
           'Reset password for your Niteco Uptime Monitoring System account',
         html,
       }),
-      tempKey.updateOne({ value: jwtKey }),
+      this.tempKeyService.tempKeysModel.update({
+        where: { id: tempKey.id },
+        data: { value: jwtKey },
+      }),
     ]);
   }
 }

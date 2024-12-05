@@ -1,4 +1,4 @@
-import { faker } from '@faker-js/faker/.';
+import { faker } from '@faker-js/faker';
 import { hash } from 'bcrypt';
 import { set } from 'lodash';
 import moment from 'moment';

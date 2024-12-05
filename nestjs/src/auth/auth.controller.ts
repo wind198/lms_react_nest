@@ -1,5 +1,13 @@
-import { Request, Response } from 'express';
-import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
+import { UpdatePasswordDto } from '@/auth/dto/update-password.dto';
+import { UpdateProfileDto } from '@/auth/dto/update-profile.dto';
+import { REFRESH_TOKEN } from '@/common/constants';
+import { hashPassword } from '@/common/helpers';
+import { IAccessRight } from '@/common/types';
+import { UsersService } from '@/resources/users/users.service';
+import { Public } from '@decorators/is-public.decorator';
+import { IS_RESOURCE } from '@decorators/is_resource.decorator';
+import { REQUIRE_ROLE } from '@decorators/require-role.decorator';
+import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
 import {
   Body,
   Controller,
@@ -7,37 +15,39 @@ import {
   OnApplicationBootstrap,
   Patch,
   Post,
-  Query,
   Req,
   Res,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
 import {
   BadRequestException,
   NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common/exceptions';
-import { ActivateUserDto } from './dto/activate-user.dto';
-import { ResetPasswordDto } from './dto/reset-pass.dto';
-import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
-import { get, isEmpty, set } from 'lodash';
-import { UsersService } from '@/resources/users/users.service';
+import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { IS_RESOURCE } from '@decorators/is_resource.decorator';
-import { REQUIRE_ROLE } from '@decorators/require-role.decorator';
-import { Public } from '@decorators/is-public.decorator';
-import { REFRESH_TOKEN } from '@constants/index';
-import { hashPassword } from '@helpers/index';
-import { IAccessRight } from '@/common/types';
 import { UserType } from '@prisma/client';
+import { compareSync } from 'bcrypt';
+import { Request, Response } from 'express';
+import { get, isEmpty, set } from 'lodash';
+import { AuthService } from './auth.service';
+import { ActivateUserDto } from './dto/activate-user.dto';
+import { LoginDto } from './dto/login.dto';
+import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
+import { ResetPasswordDto } from './dto/reset-pass.dto';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      user: { email: string; userId: number; type: UserType };
+      user: {
+        email: string;
+        userId: number;
+        type: UserType;
+        tempKeyData?: {
+          id: number;
+        };
+      };
     }
   }
 }
@@ -115,11 +125,11 @@ export class AuthController implements OnApplicationBootstrap {
 
   @Public()
   @Post('login')
-  async signIn(
+  async login(
     @Body() signInDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { token, userAuthData } = await this.authService.signIn(
+    const { token, userAuthData } = await this.authService.login(
       signInDto.email,
       signInDto.password,
     );
@@ -130,7 +140,7 @@ export class AuthController implements OnApplicationBootstrap {
 
   @Public()
   @Post('logout')
-  async logout(@Res() res: Response) {
+  async logout() {
     res.clearCookie(REFRESH_TOKEN);
     res.send();
   }
@@ -233,7 +243,7 @@ export class AuthController implements OnApplicationBootstrap {
 
     const tempKey = await this.authService.validateTempKey(
       activationKey,
-      'user-activation',
+      'ACTIVATE_USER',
     );
     if (!tempKey) {
       throw new BadRequestException(
@@ -257,13 +267,13 @@ export class AuthController implements OnApplicationBootstrap {
   @Post('validate-reset-pass-key')
   async validateResetPassKey(
     @Body() body: any,
-    @Res({ passthrough: true }) res: FastifyReply,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const { activationKey } = body ?? {};
 
     const tempKey = await this.authService.validateTempKey(
       activationKey,
-      'reset-password',
+      'RESET_PASSWORD',
     );
     if (!tempKey) {
       throw new BadRequestException(
@@ -272,7 +282,7 @@ export class AuthController implements OnApplicationBootstrap {
     }
     try {
       const payload = await this.jwtService.verifyAsync(tempKey.value);
-      res.cookie(ACESS_TOKEN, tempKey.value, setCookieOptions);
+      this.attachRefreshTokenCookie(res, tempKey.value);
 
       return payload;
     } catch (error) {
@@ -286,7 +296,7 @@ export class AuthController implements OnApplicationBootstrap {
   @Post('check-current-password')
   async checkMyPassword(
     @Body() body: { password: string },
-    @Req() req: FastifyRequest,
+    @Req() req: Request,
   ) {
     const password = body.password;
     if (!password) {
@@ -294,10 +304,9 @@ export class AuthController implements OnApplicationBootstrap {
     }
     const userId = req.user.userId;
 
-    const userProfile = await this.userService
-      .findNonDeleted()
-      .findOne({ _id: userId, isActive: true })
-      .select('+password');
+    const userProfile = await this.userService.userModel.findFirst({
+      where: { id: userId, is_active: true },
+    });
 
     if (!userProfile) {
       throw new NotFoundException('User not found');
@@ -308,12 +317,15 @@ export class AuthController implements OnApplicationBootstrap {
   }
 
   @Get('profile')
-  async getProfile(@Req() req: FastifyRequest) {
+  async getProfile(@Req() req: Request) {
     const userId = req.user.userId;
 
-    const userProfile = await this.userService
-      .findNonDeleted()
-      .findOne({ _id: userId, isActive: true });
+    const userProfile = await this.userService.userModel.findFirst({
+      where: {
+        id: userId,
+        is_active: true,
+      },
+    });
     if (!userProfile) {
       throw new UnauthorizedException('User profile not found');
     }
@@ -321,15 +333,14 @@ export class AuthController implements OnApplicationBootstrap {
   }
 
   @Get('permissions')
-  async getUserPermisson(
-    @Req() req: FastifyRequest,
-    @Query() qr: { resource?: string },
-  ) {
+  async getUserPermisson(@Req() req: Request) {
     const userId = req.user.userId;
 
-    const userProfile = await this.userService
-      .findNonDeleted()
-      .findOne({ _id: userId });
+    const userProfile = await this.userService.userModel.findFirst({
+      where: {
+        id: userId,
+      },
+    });
     if (!userProfile) {
       throw new UnauthorizedException('User not found');
     }
@@ -339,7 +350,7 @@ export class AuthController implements OnApplicationBootstrap {
       );
     }
 
-    const userType = userProfile.type;
+    const userType = userProfile.user_type;
 
     const output = Object.entries(this.userTypeBaseAccess).map(
       ([resource, data]) => {
@@ -375,29 +386,23 @@ export class AuthController implements OnApplicationBootstrap {
 
   @ThrowNotFoundOrReturn()
   @Patch('profile/user-info')
-  async updateProfile(
-    @Req() req: FastifyRequest,
-    @Body() body: UpdateProfileDto,
-  ) {
+  async updateProfile(@Req() req: Request, @Body() body: UpdateProfileDto) {
     const userId = req.user.userId;
 
-    return await this.userService
-      .findNonDeleted()
-      .findOneAndUpdate({ _id: userId, isActive: true }, body);
+    return await this.userService.userModel.update({
+      where: { id: userId, is_active: true },
+      data: body,
+    });
   }
 
   @ThrowNotFoundOrReturn()
   @Patch('profile/update-password')
-  async updatePassword(
-    @Req() req: FastifyRequest,
-    @Body() body: UpdatePasswordDto,
-  ) {
+  async updatePassword(@Req() req: Request, @Body() body: UpdatePasswordDto) {
     const userId = req.user.userId;
 
-    const userProfile = await this.userService
-      .findNonDeleted()
-      .findOne({ _id: userId, isActive: true })
-      .select('+password');
+    const userProfile = await this.userService.userModel.findFirst({
+      where: { id: userId, is_active: true },
+    });
 
     if (!userProfile) {
       return null;
@@ -411,12 +416,12 @@ export class AuthController implements OnApplicationBootstrap {
       throw new BadRequestException('Incorrect current password');
     }
 
-    await this.userService
-      .findNonDeleted()
-      .findOneAndUpdate(
-        { _id: userId, isActive: true },
-        { password: await hashPassword(body.newPassword) },
-      );
+    await this.userService.userModel.update({
+      where: { id: userId, is_active: true },
+      data: {
+        password: await hashPassword(body.newPassword),
+      },
+    });
   }
 
   attachRefreshTokenCookie(res: Response, token: string) {

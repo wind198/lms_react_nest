@@ -6,28 +6,38 @@ import { UsersModule } from './resources/users/users.module';
 import { UsersService } from './resources/users/users.service';
 import { TempKeysModule } from './temp-keys/temp-keys.module';
 
+import { MailerModule } from '@nestjs-modules/mailer';
+import {
+  GMAIL,
+  GMAIL_APP_PASSWORD,
+  NODE_ENV,
+  PUBLIC_PATH,
+} from '@/common/constants/config';
+import { AuthModule } from '@/auth/auth.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 @Module({
   imports: [
     MailerModule.forRoot({
       transport: {
-        host: MAIL_HOST,
-        port: MAIL_PORT,
-        secure: MAIL_SECURE ? true : false,
+        service: 'gmail',
         auth: {
-          user: MAIL_USER,
-          pass: MAIL_PASSWORD,
+          user: GMAIL,
+          pass: GMAIL_APP_PASSWORD,
         },
-        secureConnection: false,
-        tls: { rejectUnauthorized: false },
       },
       defaults: {
-        from: `${FROM_NAME}<${MAIL_FROM}>`,
-        replyTo: `${FROM_NAME}<performance.support@niteco.com>`,
+        from: GMAIL,
+        replyTo: GMAIL,
       },
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', PUBLIC_PATH),
     }),
     PrismaModule,
     UsersModule,
     TempKeysModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -36,6 +46,11 @@ export class AppModule implements OnApplicationBootstrap {
   constructor(private userService: UsersService) {}
 
   async onApplicationBootstrap() {
-    await this.userService.mockUsers(10);
+    if (NODE_ENV !== 'production') {
+      if (!(await this.userService.userModel.count())) {
+        await this.userService.mockUsers(10);
+        await this.userService.mockRootUser();
+      }
+    }
   }
 }

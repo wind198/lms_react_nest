@@ -1,15 +1,16 @@
+import { REFRESH_TOKEN } from '@/common/constants';
+import { JWT_SECRET } from '@/common/constants/config';
+import { TempKeysService } from '@/temp-keys/temp-keys.service';
+import { IS_PUBLIC_KEY } from '@decorators/is-public.decorator';
 import {
   CanActivate,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { FastifyRequest } from 'fastify';
-import { JWT_SECRET } from '../../config';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../decorators/is-public.decorator';
-import { TempKeyService } from '../../temp-key/temp-key.service';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 
 // declare global {
 // namespace Express {
@@ -21,30 +22,12 @@ import { TempKeyService } from '../../temp-key/temp-key.service';
 // }
 export type IRequestProjectInfo = { id: string; role: 'admin' | 'member' };
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    projects?: IRequestProjectInfo[];
-    user: {
-      // field below are encoded into a JWT token
-      email: string;
-      userId: string;
-      type: IUserType;
-      tempKeyData?: {
-        tempKeyId: string;
-      };
-      // field below are not encoded into a JWT token, but added after verified
-      projects?: string[]; // added after verified
-      isApi?: boolean; // added after verified
-    };
-  }
-}
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private reflector: Reflector,
-    private tempkeyService: TempKeyService,
+    private tempkeyService: TempKeysService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -56,57 +39,45 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    const request: FastifyRequest = context.switchToHttp().getRequest();
-    const routePath = request.routeOptions.url;
-    const method = request.method;
+    const request: Request = context.switchToHttp().getRequest();
+    const routePath = request.url;
 
     const token =
-      this.extractJwtFromCookie(request) ?? this.extractJwtFromHeader(request);
+      this.extractJwtFromHeader(request) 
+      
     if (!token) {
+      this.
       throw new UnauthorizedException('Authorization token not found');
     }
     try {
-      const payload: FastifyRequest['user'] = await this.jwtService.verifyAsync(
+      const payload: Request['user'] = await this.jwtService.verifyAsync(
         token,
         {
           secret: JWT_SECRET,
         },
       );
       if (payload.tempKeyData) {
-        const matchTempKey = await this.tempkeyService.tempKeyModel.findById(
-          payload.tempKeyData.tempKeyId,
-        );
+        const matchTempKey = await this.tempkeyService.tempKeysModel.findFirst({
+          where: { id: payload.tempKeyData.id },
+        });
         if (!matchTempKey) {
           throw new UnauthorizedException('Authorization key is invalid');
         }
 
-        const { type, readonly } = matchTempKey;
+        const { purpose } = matchTempKey;
 
-        if (type === 'user-activation' && routePath !== '/auth/activate-user') {
+        if (
+          purpose === 'ACTIVATE_USER' &&
+          routePath !== '/auth/activate-user'
+        ) {
           throw new UnauthorizedException(
             'Token is only used for user activation',
           );
         }
-        if (type === 'reset-password' && routePath !== '/auth/reset-pass') {
+        if (purpose === 'RESET_PASSWORD' && routePath !== '/auth/reset-pass') {
           throw new UnauthorizedException(
             'Token is only used for password reset',
           );
-        }
-        if (type === 'api-token') {
-          payload.isApi = true;
-          if (
-            readonly &&
-            ['post', 'patch', 'delete'].includes(method) &&
-            !routePath.includes('get-list')
-          ) {
-            throw new UnauthorizedException(
-              'Token is only used to access readonly routes',
-            );
-          }
-        }
-        if (!matchTempKey.allowAccessAllProjects) {
-          payload.projects =
-            matchTempKey.allowedProjects?.map((i) => i._id.toString()) ?? [];
         }
       }
       // 💡 We're assigning the payload to the request object here
@@ -122,15 +93,15 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  extractJwtFromCookie(req: FastifyRequest) {
+  extractJwtFromCookie(req: Request) {
     let token = null;
     if (req && req.cookies) {
-      token = req.cookies[ACESS_TOKEN];
+      token = req.cookies[REFRESH_TOKEN];
     }
     return token;
   }
 
-  extractJwtFromHeader(req: FastifyRequest): string | null {
+  extractJwtFromHeader(req: Request): string | null {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       return null;

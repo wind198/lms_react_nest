@@ -33,4 +33,6 @@ export const MAX_EMAIL_LENGTH = 50;
 export const MAX_ADDRESS_LENGTH = 500;
 export const MAX_TITLE_LENGTH = 50;
 export const MAX_DESCRIPTION_LENGTH = 500;
-export const JWT_ENCRYPT_SECRET_KEY = process.env.VITE_JWT_ENCRYPT_SECRET_KEY;
+export const JWT_ENCRYPT_SECRET_KEY = import.meta.env
+  .VITE_JWT_ENCRYPT_SECRET_KEY;
+
