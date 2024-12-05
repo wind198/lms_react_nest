@@ -18,6 +18,7 @@ import { FE_ORIGIN, NODE_ENV } from '@/common/constants/config';
 import { createElement } from 'react';
 import ResetPassword from '@/template/reset-password';
 import moment from 'moment';
+import { REFRESH_TOKEN } from '@/common/constants';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +35,13 @@ export class AuthService {
     return await this.jwtService.signAsync(payload, options);
   }
 
+  async generateTokenAndRefreshToken(payload: any) {
+    return await Promise.all([
+      this.generateJwtToken(payload, { expiresIn: 5 * 60 }),
+      this.generateJwtToken(payload, { expiresIn: 60 * 60 * 24 * 7 }),
+    ]);
+  }
+
   async login(email: string, pass: string) {
     const user = await this.usersService.userModel.findFirst({
       where: { email, deleted_at: null },
@@ -47,23 +55,24 @@ export class AuthService {
     if (!user.is_active) {
       throw new BadRequestException('Account is inactive');
     }
-    const { id } = user;
-    const token = await this.generateJwtToken({
-      userId: id,
+    const tokenPayload = {
+      userId: user.id,
       email,
       type: user.user_type,
-    });
+    };
+    const [token, refreshToken] =
+      await this.generateTokenAndRefreshToken(tokenPayload);
     const { password, ...o } = user;
 
     return {
       token,
+      refreshToken,
       userAuthData: o,
     };
   }
 
-  logout(@Res() res: Response) {
+  clearTokenFromCookie(res: Response) {
     res.clearCookie(REFRESH_TOKEN);
-    res.send();
   }
 
   async validateTempKey(key: number, purpose: TempKeyPurpose) {

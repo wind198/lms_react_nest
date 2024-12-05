@@ -129,20 +129,20 @@ export class AuthController implements OnApplicationBootstrap {
     @Body() signInDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { token, userAuthData } = await this.authService.login(
+    const { token, userAuthData, refreshToken } = await this.authService.login(
       signInDto.email,
       signInDto.password,
     );
 
-    this.attachRefreshTokenCookie(res, token);
-    return userAuthData;
+    this.attachRefreshTokenCookie(res, refreshToken);
+    return { userData: userAuthData, token };
   }
 
   @Public()
   @Post('logout')
-  async logout() {
-    res.clearCookie(REFRESH_TOKEN);
-    res.send();
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.authService.clearTokenFromCookie(res);
+    return true;
   }
 
   @Public()
@@ -193,15 +193,19 @@ export class AuthController implements OnApplicationBootstrap {
       throw new BadRequestException('User not found.');
     }
 
-    const token = await this.authService.generateJwtToken({
+    const tokenPayload = {
       userId: match.id,
       email: match.email,
       type: match.user_type,
-    });
+    };
+    const [token, refreshToken] =
+      await this.authService.generateTokenAndRefreshToken(tokenPayload);
 
-    this.attachRefreshTokenCookie(res, token);
+    this.attachRefreshTokenCookie(res, refreshToken);
 
-    return true;
+    delete match.password;
+
+    return { token, userData: match };
   }
 
   @Post('reset-pass')
@@ -228,17 +232,14 @@ export class AuthController implements OnApplicationBootstrap {
       throw new BadRequestException('User not found.');
     }
 
-    res.clearCookie(REFRESH_TOKEN);
+    this.authService.clearTokenFromCookie(res);
 
     return true;
   }
 
   @Public()
   @Post('validate-activation-key')
-  async validateActivationKey(
-    @Body() body: any,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async validateActivationKey(@Body() body: any) {
     const { activationKey } = body ?? {};
 
     const tempKey = await this.authService.validateTempKey(
@@ -251,10 +252,9 @@ export class AuthController implements OnApplicationBootstrap {
       );
     }
     try {
-      const payload = await this.jwtService.verifyAsync(tempKey.value);
-      this.attachRefreshTokenCookie(res, tempKey.value);
+      await this.jwtService.verifyAsync(tempKey.value);
 
-      return payload;
+      return { token: tempKey.value };
     } catch (error) {
       console.error(error);
       throw new BadRequestException(
@@ -281,10 +281,9 @@ export class AuthController implements OnApplicationBootstrap {
       );
     }
     try {
-      const payload = await this.jwtService.verifyAsync(tempKey.value);
-      this.attachRefreshTokenCookie(res, tempKey.value);
+      await this.jwtService.verifyAsync(tempKey.value);
 
-      return payload;
+      return { token: tempKey.value };
     } catch (error) {
       console.error(error);
       throw new BadRequestException(
@@ -324,6 +323,7 @@ export class AuthController implements OnApplicationBootstrap {
       where: {
         id: userId,
         is_active: true,
+        deleted_at: null,
       },
     });
     if (!userProfile) {
@@ -390,7 +390,7 @@ export class AuthController implements OnApplicationBootstrap {
     const userId = req.user.userId;
 
     return await this.userService.userModel.update({
-      where: { id: userId, is_active: true },
+      where: { id: userId, is_active: true, deleted_at: null },
       data: body,
     });
   }

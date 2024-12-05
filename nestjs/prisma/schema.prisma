@@ -51,7 +51,7 @@ model User {
   generation           Generation?          @relation(fields: [generation_id], references: [id], onDelete: Restrict)
   created_at           DateTime             @default(now())
   updated_at           DateTime             @updatedAt
-  deleted_at           DateTime?             @updatedAt
+  deleted_at           DateTime?            
   TempKey              TempKey[]
 }
 

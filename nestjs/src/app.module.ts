@@ -31,9 +31,9 @@ import { join } from 'path';
         replyTo: GMAIL,
       },
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', PUBLIC_PATH),
-    }),
+    // ServeStaticModule.forRoot({
+    //   rootPath: join(__dirname, '..', PUBLIC_PATH),
+    // }),
     PrismaModule,
     UsersModule,
     TempKeysModule,
@@ -48,7 +48,7 @@ export class AppModule implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     if (NODE_ENV !== 'production') {
       if (!(await this.userService.userModel.count())) {
-        await this.userService.mockUsers(10);
+        await this.userService.mockUsers(100);
         await this.userService.mockRootUser();
       }
     }

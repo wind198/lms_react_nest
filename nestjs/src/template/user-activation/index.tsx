@@ -1,5 +1,3 @@
-import React from 'react';
-
 type IUserActivationProps = {
   userName: string;
   activationUrl: string;
@@ -67,7 +65,10 @@ export default function UserActivation(props: IUserActivationProps) {
             color: '#777',
           }}
         >
-          <p>&copy; 2024 Niteco Niteco Uptime Monitoring System. All rights reserved.</p>
+          <p>
+            &copy; 2024 Niteco Niteco Uptime Monitoring System. All rights
+            reserved.
+          </p>
         </footer>
       </div>
     </div>

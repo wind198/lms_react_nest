@@ -5,5 +5,6 @@ export const GMAIL_APP_PASSWORD =
   process.env.GMAIL_APP_PASSWORD ?? 'cnoq utrs attq anmz';
 export const GMAIL = process.env.GMAIL ?? 'tuanbk1908@gmail.com';
 export const PUBLIC_PATH = process.env.PUBLIC_PATH ?? 'public';
-export const ROOT_USER_EMAIL = process.env.ROOT_USER_EMAIL ?? 'tuanbk1908';
+export const ROOT_USER_EMAIL =
+  process.env.ROOT_USER_EMAIL ?? 'tuanbk1908@gmail.com';
 export const ROOT_USER_PASSWORD = process.env.ROOT_USER_PASSWORD ?? '123123';

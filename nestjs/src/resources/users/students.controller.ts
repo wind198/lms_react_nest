@@ -19,7 +19,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import { omit } from 'lodash';
 
-@Controller('users')
+@Controller('students')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
@@ -57,8 +57,8 @@ export class UsersController {
     // Fetch data using the service
     const [data, total] = await Promise.all([
       this.usersService.userModel.findMany({
-        skip: (page - 1) * per_page,
-        take: per_page,
+        skip: (pageNumber - 1) * pageSize,
+        take: pageSize,
         where,
         orderBy: { [order_by as any]: order },
         include: {
@@ -79,10 +79,12 @@ export class UsersController {
 
     // Return paginated response
     return {
-      page: pageNumber,
-      per_page: pageSize,
-      total,
       data: data.map((i) => omit(i, 'password')),
+      params: {
+        from: (pageNumber - 1) * pageSize,
+        to: Math.max(pageNumber * pageSize, total),
+        total,
+      },
     };
   }
 
