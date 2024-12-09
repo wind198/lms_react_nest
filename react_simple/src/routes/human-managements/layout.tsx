@@ -9,12 +9,18 @@ export default function HumanManagementLayout() {
   return (
     <Card
       title={
-        <Flex justify="space-between" style={{ padding: "8px 0" }}>
-          <Flex vertical>
+        <Flex
+          justify="space-between"
+          style={{ padding: "8px 0" }}
+          align="flex-start"
+        >
+          <Flex vertical style={{ width: "100%" }}>
             <AppBreadcrumbs />
-            <Typography.Title level={2} style={{ margin: 0 }} >
-              {pageTitle}
-            </Typography.Title>
+            <Flex justify="space-between" align="center">
+              <Typography.Title level={2} style={{ margin: 0 }}>
+                {pageTitle}
+              </Typography.Title>
+            </Flex>
           </Flex>
         </Flex>
       }

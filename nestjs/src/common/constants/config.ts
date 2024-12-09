@@ -8,3 +8,11 @@ export const PUBLIC_PATH = process.env.PUBLIC_PATH ?? 'public';
 export const ROOT_USER_EMAIL =
   process.env.ROOT_USER_EMAIL ?? 'tuanbk1908@gmail.com';
 export const ROOT_USER_PASSWORD = process.env.ROOT_USER_PASSWORD ?? '123123';
+export const JWT_TOKEN_EXPIRATION = +(
+  process.env.JWT_TOKEN_EXPIRATION ?? 60 * 2
+);
+export const RESET_PASS_EXPIRATION = +(
+  process.env.RESET_PASS_EXPIRATION ?? 60 * 5
+);
+export const REFRESH_TOKEN_EXPIRATION =
+  process.env.REFRESH_TOKEN_EXPIRATION ?? '7 days';

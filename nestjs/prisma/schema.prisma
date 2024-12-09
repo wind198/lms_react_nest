@@ -37,6 +37,7 @@ enum EDUCATION_BACKGROUND {
 model User {
   id                   Int                  @id @default(autoincrement())
   is_active            Boolean              @default(false)
+  full_name            String
   first_name           String
   last_name            String
   email                String
@@ -51,8 +52,18 @@ model User {
   generation           Generation?          @relation(fields: [generation_id], references: [id], onDelete: Restrict)
   created_at           DateTime             @default(now())
   updated_at           DateTime             @updatedAt
-  deleted_at           DateTime?            
+  deleted_at           DateTime?
   TempKey              TempKey[]
+
+  @@index([education_background])
+  @@index([user_type])
+  @@index([generation_id])
+  @@index([gender])
+  @@index([created_at])
+  @@index([dob])
+  @@index([email])
+  @@index([phone])
+  @@fulltext([full_name])
 }
 
 model Generation {
@@ -69,7 +80,7 @@ model Major {
   id          Int      @id @default(autoincrement())
   title       String
   description String   @db.Text()
-  Course      Course[]
+  courses     Course[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }
@@ -80,20 +91,20 @@ model Course {
   description String   @db.Text()
   major_id    Int
   major       Major    @relation(fields: [major_id], references: [id])
-  Class       Class[]
+  classes     Class[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }
 
 model Room {
-  id              Int         @id @default(autoincrement())
+  id              Int          @id @default(autoincrement())
   title           String
-  description     String      @db.Text()
-  address         String      @db.Text()
-  room_setting_id Int
-  room_setting    RoomSetting @relation(fields: [room_setting_id], references: [id])
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
+  description     String       @db.Text()
+  address         String       @db.Text()
+  room_setting_id Int?
+  room_setting    RoomSetting? @relation(fields: [room_setting_id], references: [id])
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
 }
 
 model RoomSetting {
@@ -101,6 +112,7 @@ model RoomSetting {
   title             String
   description       String         @db.Text()
   dates_off         Json
+  dates_off_once         Json
   capacity          Int
   room_optime_times RoomOpenTime[]
   rooms             Room[]

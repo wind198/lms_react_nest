@@ -23,7 +23,7 @@ export type IQueryListParams = {
   per_page: number;
   order: IOrder;
   order_by: string;
-  filter: Record<string, any>;
+  filter: string;
 };
 
 export type IHasId = { id: number };
@@ -47,4 +47,9 @@ export type IHasResource = {
   resourcePlural?: string;
 };
 
+export type IActivable = {
+  is_active: boolean;
+};
 export type ISearchParamObj = Record<string, any>;
+
+export type IMultiple = {multiple?: boolean}

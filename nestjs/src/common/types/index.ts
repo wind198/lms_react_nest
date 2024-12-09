@@ -13,3 +13,5 @@ export type IHasTimestamp = {
 
 export const AccessRightList = ['list', 'create', 'update', 'delete'] as const;
 export type IAccessRight = (typeof AccessRightList)[number];
+
+export type IActivable = { is_active: boolean };

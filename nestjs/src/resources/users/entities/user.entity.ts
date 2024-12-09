@@ -1,15 +1,6 @@
 import { User } from '@prisma/client';
 
-export type IUserCoreField = Pick<
+export type IUserCoreField = Omit<
   User,
-  | 'first_name'
-  | 'last_name'
-  | 'email'
-  | 'phone'
-  | 'address'
-  | 'dob'
-  | 'gender'
-  | 'generation_id'
-  | 'user_type'
-  | 'education_background'
+  'updated_at' | 'created_at' | 'generation' | 'id' | 'is_active' | 'deleted_at'
 >;

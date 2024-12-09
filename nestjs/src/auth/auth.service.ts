@@ -14,11 +14,22 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { TempKey, TempKeyPurpose, User } from '@prisma/client';
 import { UsersService } from '@resources/users/users.service';
 import { compare } from 'bcrypt';
-import { FE_ORIGIN, NODE_ENV } from '@/common/constants/config';
+import {
+  FE_ORIGIN,
+  JWT_TOKEN_EXPIRATION,
+  NODE_ENV,
+  REFRESH_TOKEN_EXPIRATION,
+  RESET_PASS_EXPIRATION,
+} from '@/common/constants/config';
 import { createElement } from 'react';
 import ResetPassword from '@/template/reset-password';
 import moment from 'moment';
 import { REFRESH_TOKEN } from '@/common/constants';
+
+export type IJwtTokenPayload = Pick<
+  Request['user'],
+  'email' | 'type' | 'userId'
+>;
 
 @Injectable()
 export class AuthService {
@@ -31,14 +42,14 @@ export class AuthService {
     private mailerService: MailerService,
   ) {}
 
-  async generateJwtToken(payload: any, options?: JwtSignOptions) {
+  async generateJwtToken(payload: IJwtTokenPayload, options?: JwtSignOptions) {
     return await this.jwtService.signAsync(payload, options);
   }
 
-  async generateTokenAndRefreshToken(payload: any) {
+  async generateTokenAndRefreshToken(payload: IJwtTokenPayload) {
     return await Promise.all([
-      this.generateJwtToken(payload, { expiresIn: 5 * 60 }),
-      this.generateJwtToken(payload, { expiresIn: 60 * 60 * 24 * 7 }),
+      this.generateJwtToken(payload, { expiresIn: JWT_TOKEN_EXPIRATION }),
+      this.generateJwtToken(payload, { expiresIn: REFRESH_TOKEN_EXPIRATION }),
     ]);
   }
 
@@ -110,10 +121,8 @@ export class AuthService {
       },
     };
 
-    const expireAfter = NODE_ENV === 'development' ? '10d' : '30min';
-
     const jwtKey = await this.generateJwtToken(jwtPayload, {
-      expiresIn: expireAfter,
+      expiresIn: RESET_PASS_EXPIRATION,
     });
 
     const activationStr = `${FE_ORIGIN}/auth/reset-password?reset-pass-key=${tempKey.id}`;
@@ -137,5 +146,14 @@ export class AuthService {
         data: { value: jwtKey },
       }),
     ]);
+  }
+
+  attachRefreshTokenCookie(res: Response, token: string) {
+    res.cookie(REFRESH_TOKEN, token, {
+      secure: false,
+      httpOnly: true,
+      sameSite: false,
+      path: '/',
+    });
   }
 }

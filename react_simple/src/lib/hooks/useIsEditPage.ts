@@ -6,7 +6,7 @@ export default function useIsEditPage() {
   const { pathname } = useLocation();
 
   const isEdit = useMemo(
-    () => removeTrailingSlash(pathname).endsWith("update"),
+    () => removeTrailingSlash(pathname).endsWith("edit"),
     [pathname]
   );
 

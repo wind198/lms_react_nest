@@ -1,16 +1,18 @@
 import { IUser } from "@/lib/types/entities/user.entity";
+import { clearJWT, storeJWT } from "@/lib/utils/client-storage/jwt-token";
 import {
-  clearJWT,
-  storeJWT
-} from "@/lib/utils/client-storage/jwt-token";
-import { getUserData } from "@/lib/utils/client-storage/user-data";
+  clearUserData,
+  getUserData,
+  storeUserData,
+} from "@/lib/utils/client-storage/user-data";
 import { JWT_ENCRYPT_SECRET_KEY } from "@/lib/utils/constants";
 import { create } from "zustand";
 type IAuthStoreData = {
   userData?: IUser;
   isAuthenticated?: boolean;
-  login: (p: ILoginPayload) => void;
-  logout: () => void;
+  login: (p: ILoginPayload) => Promise<void>;
+  logout: () => Promise<void>;
+  setUserData: (i: IUser) => void;
 };
 
 type ILoginPayload = {
@@ -25,17 +27,18 @@ const useAuthStore = create<IAuthStoreData>((set) => {
       if (!JWT_ENCRYPT_SECRET_KEY) {
         throw new Error("JWT_ENCRYPT_SECRET_KEY is not defined");
       }
+      await Promise.all([
+        storeJWT(payload.jwtToken, JWT_ENCRYPT_SECRET_KEY),
+        storeUserData(payload.userData),
+      ]);
       set({ isAuthenticated: true, userData: payload.userData });
-
-      await storeJWT(payload.jwtToken, JWT_ENCRYPT_SECRET_KEY);
     },
     logout: async () => {
       set({ isAuthenticated: false, userData: undefined });
-      await clearJWT();
+      await Promise.all([clearJWT(), clearUserData()]);
     },
-    fetchData: async () => {
-      const userData = (await getUserData()) ?? undefined;
-      set({ userData });
+    setUserData(i) {
+      set({ userData: i });
     },
   };
 });

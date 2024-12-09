@@ -1,3 +1,4 @@
+export const MAX_NAME_LENGTH = 50;
 export const MAX_EMAIL_LEN = 50;
 export const MAX_PHONE_LEN = 50;
 export const MAX_ADDRESS_LEN = 200;

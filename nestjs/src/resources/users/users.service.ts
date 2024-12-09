@@ -1,22 +1,29 @@
 import { faker } from '@faker-js/faker';
 import { Injectable } from '@nestjs/common';
-import { EDUCATION_BACKGROUND, GENDER, Prisma, User } from '@prisma/client';
+import {
+  EDUCATION_BACKGROUND,
+  GENDER,
+  Prisma,
+  User,
+  UserType,
+} from '@prisma/client';
 import { DefaultArgs } from '@prisma/client/runtime/library';
 import { range, sample, shuffle, times } from 'lodash';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IUserCoreField } from './entities/user.entity';
 import { hashPassword } from '@/common/helpers';
 import { ROOT_USER_EMAIL } from '@/common/constants/config';
+import { IActivable } from '@/common/types/index';
 
 @Injectable()
 export class UsersService {
   userModel: Prisma.UserDelegate<DefaultArgs>;
   constructor(private prisma: PrismaService) {
-    this.userModel = prisma.user;
+    this.userModel = prisma.client.user;
   }
 
   async countEmailDuplication(email: string) {
-    const count = await this.prisma.user.count({ where: { email: email } });
+    const count = await this.userModel.count({ where: { email: email } });
 
     return count;
   }
@@ -42,7 +49,7 @@ export class UsersService {
     return shuffle(password.split('')).join('');
   }
 
-  async mockUsers(count: number, generation_id?: number) {
+  async mockUsers(count: number, userType: UserType, generation_id?: number) {
     const data = await Promise.all(
       range(count).map(async (_) => {
         const firstName = faker.person.firstName();
@@ -53,6 +60,7 @@ export class UsersService {
           email,
           first_name: firstName,
           last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
           education_background: sample(
             Object.keys(EDUCATION_BACKGROUND),
           ) as EDUCATION_BACKGROUND,
@@ -60,13 +68,14 @@ export class UsersService {
           phone: faker.phone.number(),
           gender: sample(Object.keys(GENDER)) as GENDER,
           dob: faker.date.birthdate(),
-          user_type: 'STUDENT',
+          user_type: userType,
           generation_id: generation_id ?? null,
           password: await hashPassword(this.generateRandomPassword()),
-        } satisfies IUserCoreField & { password: string };
+          is_active: true,
+        } satisfies IUserCoreField & { password: string } & IActivable;
       }),
     );
-    return this.prisma.user.createMany({ data });
+    return this.userModel.createMany({ data });
   }
 
   getFullname(user: User) {
@@ -77,9 +86,11 @@ export class UsersService {
   async mockRootUser() {
     return await this.userModel.create({
       data: {
+        is_active: true,
         email: ROOT_USER_EMAIL,
         first_name: 'Root Admin',
         last_name: 'User',
+        full_name: 'Root Admin User',
         education_background: EDUCATION_BACKGROUND.MASTER,
         address: 'Admin Address',
         phone: '1234567890',

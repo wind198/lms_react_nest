@@ -1,16 +1,22 @@
 import { notification } from "antd";
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import useAuthStore from "../store/useAuthStore";
 import apiHttpClient from "@/lib/utils/singleton";
+import { useContext } from "react";
+import { NotificationContext } from "@/App";
 
 export default function useApiHttpClient() {
   const { t } = useTranslation();
 
+  const { api } = useContext(NotificationContext);
+
   const logout = useAuthStore((s) => s.logout);
 
   const navigate = useNavigate();
+
+  const { pathname } = useLocation();
 
   const extractAxiosErrMsg = (error: AxiosError) => {
     const unExpectedErrorMsg = t("messages.error.unexpectedError");
@@ -25,13 +31,15 @@ export default function useApiHttpClient() {
 
   const handleHttpErr = (error: any) => {
     const statusCode = (error as AxiosError)?.status;
-    notification.error({
+    api?.error({
       message: "Error",
       description: extractAxiosErrMsg(error),
     });
     if (statusCode === 401) {
       logout();
-      navigate("/auth/login");
+      if (pathname !== "/login") {
+        navigate("/login", { state: { from: pathname } });
+      }
     }
     throw error;
   };

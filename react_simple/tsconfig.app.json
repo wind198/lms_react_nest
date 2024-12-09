@@ -35,9 +35,6 @@
       "@hooks/*": [
         "./src/lib/hooks/*"
       ],
-      "@types/*": [
-        "./src/lib/types/*"
-      ],
       "@store/*": [
         "./src/lib/store/*"
       ],

@@ -1,9 +1,11 @@
+import useSetupTitleAndBreadcrumbs from "@/lib/hooks/useSetTitles";
 import { Row, Col, Flex } from "antd";
 import { theme } from "antd";
 import { Outlet } from "react-router";
 
 export default function AuthLayout() {
   const tokens = theme.useToken();
+  useSetupTitleAndBreadcrumbs();
 
   return (
     <Row>

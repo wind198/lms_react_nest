@@ -13,6 +13,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       placeholderData: keepPreviousData,
+      staleTime: 300000,
     },
   },
 });

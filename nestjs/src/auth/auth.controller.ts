@@ -1,7 +1,7 @@
 import { UpdatePasswordDto } from '@/auth/dto/update-password.dto';
 import { UpdateProfileDto } from '@/auth/dto/update-profile.dto';
 import { REFRESH_TOKEN } from '@/common/constants';
-import { hashPassword } from '@/common/helpers';
+import { extractJwtFromCookie, hashPassword } from '@/common/helpers';
 import { IAccessRight } from '@/common/types';
 import { UsersService } from '@/resources/users/users.service';
 import { Public } from '@decorators/is-public.decorator';
@@ -30,11 +30,13 @@ import { UserType } from '@prisma/client';
 import { compareSync } from 'bcrypt';
 import { Request, Response } from 'express';
 import { get, isEmpty, set } from 'lodash';
-import { AuthService } from './auth.service';
+import { AuthService, IJwtTokenPayload } from './auth.service';
 import { ActivateUserDto } from './dto/activate-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestResetPasswordDto } from './dto/request-reset-password.dto';
 import { ResetPasswordDto } from './dto/reset-pass.dto';
+import { RefreshTokenDto } from '@/auth/dto/RefreshTokenDto';
+import { JWT_SECRET, JWT_TOKEN_EXPIRATION } from '@/common/constants/config';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -134,7 +136,7 @@ export class AuthController implements OnApplicationBootstrap {
       signInDto.password,
     );
 
-    this.attachRefreshTokenCookie(res, refreshToken);
+    this.authService.attachRefreshTokenCookie(res, refreshToken);
     return { userData: userAuthData, token };
   }
 
@@ -201,7 +203,7 @@ export class AuthController implements OnApplicationBootstrap {
     const [token, refreshToken] =
       await this.authService.generateTokenAndRefreshToken(tokenPayload);
 
-    this.attachRefreshTokenCookie(res, refreshToken);
+    this.authService.attachRefreshTokenCookie(res, refreshToken);
 
     delete match.password;
 
@@ -424,12 +426,50 @@ export class AuthController implements OnApplicationBootstrap {
     });
   }
 
-  attachRefreshTokenCookie(res: Response, token: string) {
-    res.cookie(REFRESH_TOKEN, token, {
-      secure: false,
-      httpOnly: true,
-      sameSite: false,
-      path: '/',
-    });
+  @Public()
+  @Post('/refresh-token')
+  async refreshToken(@Body() body: RefreshTokenDto, @Req() req: Request) {
+    const { token } = body;
+
+    const next = async () => {
+      const refreshToken = extractJwtFromCookie(req);
+      if (!refreshToken) {
+        throw new UnauthorizedException('Refresh token not found');
+      }
+      const payload = await this.jwtService.verifyAsync<IJwtTokenPayload>(
+        refreshToken,
+        {
+          secret: JWT_SECRET,
+        },
+      );
+      const { email, type, userId } = payload;
+      const match = await this.userService.userModel.findFirst({
+        where: { id: userId },
+      });
+      if (!match) {
+        throw new UnauthorizedException('User profile not found');
+      }
+      delete match.password;
+
+      return {
+        token: await this.authService.generateJwtToken(
+          { email, type, userId },
+          {
+            expiresIn: JWT_TOKEN_EXPIRATION,
+          },
+        ),
+        userData: match,
+      };
+    };
+
+    try {
+      await this.jwtService.verifyAsync(token);
+      return await next();
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return await next();
+      }
+      throw new UnauthorizedException('Invalid JWT token');
+    }
   }
 }

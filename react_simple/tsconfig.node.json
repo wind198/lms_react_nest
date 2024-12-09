@@ -20,26 +20,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@lib/*": [
-        "./src/lib/*"
-      ],
-      "@hooks/*": [
-        "./src/lib/hooks/*"
-      ],
-      "@types/*": [
-        "./src/lib/types/*"
-      ],
-      "@store/*": [
-        "./src/lib/store/*"
-      ],
-      "@components/*": [
-        "./src/lib/components/*"
-      ]
-    },
   },
   "include": [
     "vite.config.ts"

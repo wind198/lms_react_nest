@@ -20,6 +20,7 @@ import {
 import { AxiosError } from "axios";
 import dayjs from "dayjs";
 import { isEmpty, set } from "lodash-es";
+import { useMemo } from "react";
 
 type IFilterInput = Record<string, any>;
 type IFilterOutput = Record<string, any>;
@@ -73,12 +74,16 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
     generateAugmentedFilter = defaultAugmentedFilterGenerator,
   } = options;
 
+  const filterStr = useMemo(() => JSON.stringify(filter), [filter]);
+
   const { $get } = useApiHttpClient();
 
   const fetchListPaging = async ({ queryKey }: QueryFunctionContext) => {
     const filterOutput: IFilterOutput = {};
-    const { order, order_by, page, per_page, filter } = queryKey[1] as any;
-    const augmentedFilter = generateAugmentedFilter(
+    const { order, order_by, page, per_page, filterStr } = queryKey[1] as any;
+    const filter = JSON.parse(filterStr);
+
+    generateAugmentedFilter(
       filterOutput,
       filter,
       defaultAugmentedFilterGenerator
@@ -90,7 +95,7 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
         order_by: order_by ?? DEFAULT_ORDER_BY,
         page: page ?? DEFAULT_PAGE,
         per_page: per_page ?? DEFAULT_PER_PAGE,
-        filter: augmentedFilter ?? {},
+        filter: filterOutput ?? {},
       },
     });
 
@@ -101,7 +106,7 @@ export default function useGetList<T = IHasId>(options: IUseGetListOptions) {
     queryKey: [
       resourcePlural,
       {
-        filter,
+        filterStr,
         order,
         order_by,
         page,

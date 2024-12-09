@@ -1,10 +1,20 @@
 const fs = require('fs');
+const { upperFirst, zip, kebabCase } = require('lodash');
 const path = require('path');
-
 /**
  * Recursively copy a directory from source to destination.
  */
-function copyDirectory(src, dest) {
+
+const OLD = {
+  resource: 'major',
+  resourcePlural: 'majors',
+};
+const NEW = {
+  resource: 'roomSetting',
+  resourcePlural: 'roomSettings',
+};
+
+function copyDirectory(src, dest, replacements) {
   if (!fs.existsSync(dest)) {
     fs.mkdirSync(dest, { recursive: true });
   }
@@ -13,60 +23,86 @@ function copyDirectory(src, dest) {
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
+    let destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      copyDirectory(srcPath, destPath);
+      copyDirectory(srcPath, destPath, replacements);
     } else if (entry.isFile()) {
-      const content = fs.readFileSync(srcPath, 'utf-8');
-      const updatedContent = replaceContent(
-        content,
-        'user',
-        'teacher',
-        'User',
-        'Teacher',
+      destPath = replaceContent(
+        destPath,
+        replacements.map((i) => i.map((k) => kebabCase(k))),
       );
+      const content = fs.readFileSync(srcPath, 'utf-8');
+      const updatedContent = replaceContent(content, replacements);
       fs.writeFileSync(destPath, updatedContent, 'utf-8');
     }
   }
 }
 
 /**
- * Replace case-sensitive content in a file.
+ *
+ * @param {string} content
+ * @param {Array} replacements
  */
-function replaceContent(
-  content,
-  oldLowerCase,
-  newLowerCase,
-  oldCapitalized,
-  newCapitalized,
-) {
-  return content
-    .split(oldLowerCase)
-    .join(newLowerCase) // Replace lowercase
-    .split(oldCapitalized)
-    .join(newCapitalized); // Replace capitalized
+function replaceContent(content, replacements = []) {
+  let output = content;
+  replacements.forEach(([o, n]) => {
+    output = output.replaceAll(o, n);
+  });
+
+  return output;
 }
 
 /**
  * Main function to clone the resource.
  */
-function cloneResource(srcResource, destResource) {
-  const srcPath = path.join(__dirname, 'src', srcResource);
-  const destPath = path.join(__dirname, 'src', destResource);
+function cloneResource() {
+  const {
+    resource: oldResource,
+    resourcePlural: oldResourcePlural = oldResource + 's',
+    resourceCapitalized: oldResourceCapitalized = upperFirst(oldResource),
+    resourcePluralCapitalized: oldResourcePluralCapitalized = upperFirst(
+      oldResourcePlural,
+    ),
+  } = OLD;
+  const {
+    resource: newResource,
+    resourcePlural: newResourcePlural = newResource + 's',
+    resourceCapitalized: newResourceCapitalized = upperFirst(newResource),
+    resourcePluralCapitalized: newResourcePluralCapitalized = upperFirst(
+      newResourcePlural,
+    ),
+  } = NEW;
+
+  const srcPath = path.join(__dirname, '../src/resources', oldResourcePlural);
+  const destPath = path.join(__dirname, '../src/resources', newResourcePlural);
 
   if (!fs.existsSync(srcPath)) {
-    console.error(`Source resource "${srcResource}" does not exist.`);
+    console.error(`Source resource path "${srcPath}" does not exist.`);
     process.exit(1);
   }
+  if (fs.existsSync(destPath)) {
+    fs.rmdirSync(destPath, { recursive: true, force: true });
+  }
 
-  console.log(`Cloning resource from "${srcResource}" to "${destResource}"...`);
-  copyDirectory(srcPath, destPath);
+  const replacements = zip(
+    [
+      oldResourcePluralCapitalized,
+      oldResourceCapitalized,
+      oldResourcePlural,
+      oldResource,
+    ],
+    [
+      newResourcePluralCapitalized,
+      newResourceCapitalized,
+      newResourcePlural,
+      newResource,
+    ],
+  );
+
+  console.log(`Cloning resource from "${srcPath}" to "${destPath}"...`);
+  copyDirectory(srcPath, destPath, replacements);
   console.log(`Resource cloned successfully.`);
 }
 
-// Replace these values as needed
-const oldResource = 'users'; // The resource to clone
-const newResource = 'teachers'; // The new resource name
-
-cloneResource(oldResource, newResource);
+cloneResource();

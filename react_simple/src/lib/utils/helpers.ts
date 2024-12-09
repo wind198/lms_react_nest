@@ -1,6 +1,7 @@
 import dayjs, { ConfigType } from "dayjs";
 import { parse } from "qs";
 import { IOrder, ISearchParamObj, IStringOrNumber } from "../types/common.type";
+import { SortOrder } from "antd/es/table/interface";
 
 /**
  * HELPERS
@@ -15,30 +16,22 @@ export const apiPrefix = (i: string) => {
 };
 
 export const getOneUrl = (resourcePlural: string, id: IStringOrNumber) => {
-  return [apiPrefix(resourcePlural).replace(/\/$/, ""), id].join("/");
+  return [resourcePlural.replace(/\/$/, ""), id].join("/");
 };
 export const getRepresentationUrl = (
   resourcePlural: string,
   id: IStringOrNumber
 ) => {
-  return [
-    apiPrefix(resourcePlural).replace(/\/$/, ""),
-    id,
-    "representation",
-  ].join("/");
+  return [resourcePlural.replace(/\/$/, ""), id, "representation"].join("/");
 };
 export const getManyUrl = (resourcePlural: string) => {
-  return [apiPrefix(resourcePlural).replace(/\/$/, ""), "get-many"].join("/");
+  return [resourcePlural.replace(/\/$/, ""), "get-many"].join("/");
 };
 export const updateManyUrl = (resourcePlural: string) => {
-  return [apiPrefix(resourcePlural).replace(/\/$/, ""), "update-many"].join(
-    "/"
-  );
+  return [resourcePlural.replace(/\/$/, ""), "update-many"].join("/");
 };
 export const deleteManyUrl = (resourcePlural: string) => {
-  return [apiPrefix(resourcePlural).replace(/\/$/, ""), "delete-many"].join(
-    "/"
-  );
+  return [resourcePlural.replace(/\/$/, ""), "delete-many"].join("/");
 };
 
 export const reserveOrder = (i: IOrder) => (i === "asc" ? "desc" : "asc");
@@ -68,7 +61,7 @@ export const parseQueryStringToSearchParamObject = (
 
   // Split the query string into key-value pairs
 
-  return parse(cleanQueryString);
+  return parse(decodeURI(cleanQueryString));
 };
 
 export function removeNullFields(obj: any) {
@@ -95,3 +88,30 @@ export const getDeleteApi = (resource: string) =>
 
 export const getPathSegments = (i: string) => i.split(/\/+/).filter(Boolean);
 export const removeTrailingSlash = (i: string) => i.replace(/\/+$/g, "");
+
+export const onClickToTargetInnerLink = (target: HTMLElement) => {
+  target.querySelector("a")?.click();
+};
+
+export const isNullOrUndefined = (v: any) => v === null || v === undefined;
+
+export const reverseAntdSortOrder = (
+  i: SortOrder | undefined
+): SortOrder | undefined => {
+  if (!i) {
+    return i;
+  }
+  if (i === "ascend") {
+    return "descend";
+  }
+  return "ascend";
+};
+export const reverseOrder = (i: IOrder | undefined): IOrder | undefined => {
+  if (!i) {
+    return i;
+  }
+  if (i === "asc") {
+    return "desc";
+  }
+  return "asc";
+};

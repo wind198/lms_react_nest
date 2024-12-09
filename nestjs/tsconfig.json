@@ -32,9 +32,6 @@
       "@interceptors/*": [
         "./src/common/interceptors/*"
       ],
-      "@types/*": [
-        "./src/common/types/*"
-      ],
       "@pipes/*": [
         "./src/common/pipes/*"
       ],

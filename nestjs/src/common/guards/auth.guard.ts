@@ -1,5 +1,5 @@
-import { REFRESH_TOKEN } from '@/common/constants';
 import { JWT_SECRET } from '@/common/constants/config';
+import { extractJwtFromHeader } from '@/common/helpers';
 import { TempKeysService } from '@/temp-keys/temp-keys.service';
 import { IS_PUBLIC_KEY } from '@decorators/is-public.decorator';
 import {
@@ -42,7 +42,7 @@ export class AuthGuard implements CanActivate {
     const request: Request = context.switchToHttp().getRequest();
     const routePath = request.url;
 
-    const token = this.extractJwtFromHeader(request);
+    const token = extractJwtFromHeader(request);
 
     if (!token) {
       throw new UnauthorizedException('Authorization token not found');
@@ -89,23 +89,5 @@ export class AuthGuard implements CanActivate {
       );
     }
     return true;
-  }
-
-  extractJwtFromCookie(req: Request) {
-    let token = null;
-    if (req && req.cookies) {
-      token = req.cookies[REFRESH_TOKEN];
-    }
-    return token;
-  }
-
-  extractJwtFromHeader(req: Request): string | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return null;
-    }
-
-    const [type, token] = authHeader.split(' ');
-    return type === 'Bearer' && token ? token : null;
   }
 }

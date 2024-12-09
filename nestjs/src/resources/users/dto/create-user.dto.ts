@@ -6,28 +6,43 @@ import {
   IsIn,
   IsInt,
   IsOptional,
-  IsPhoneNumber,
   IsString,
+  MaxLength,
 } from 'class-validator';
+import {
+  MAX_ADDRESS_LEN,
+  MAX_EMAIL_LEN,
+  MAX_NAME_LENGTH,
+  MAX_PHONE_LEN,
+} from '@/common/constants/validation/index';
 
 export class CreateUserDto
-  implements Omit<IUserCoreField, 'user_type' | 'generation_id'>
+  implements
+    Omit<
+      IUserCoreField,
+      'user_type' | 'generation_id' | 'is_active' | 'full_name' | 'password'
+    >
 {
   @IsEmail()
+  @MaxLength(MAX_EMAIL_LEN)
   email: string;
 
   @IsString()
+  @MaxLength(MAX_NAME_LENGTH / 2)
   first_name: string;
 
-  @IsEmail()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH / 2)
   last_name: string;
 
   @IsOptional()
-  @IsPhoneNumber()
+  @IsString()
+  @MaxLength(MAX_PHONE_LEN)
   phone: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_ADDRESS_LEN)
   address: string;
 
   @IsIn(Object.keys(EDUCATION_BACKGROUND))

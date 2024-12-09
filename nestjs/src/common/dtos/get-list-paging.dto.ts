@@ -1,18 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsInt, IsJSON, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsInt, IsJSON, IsObject, IsOptional, IsString } from 'class-validator';
 import { IFilter, IOrder, OrderList } from 'src/common/types';
 
 export class ListPagingSortingFilteringDto {
   @IsInt()
-  @Transform((params) => {
-    return parseInt(params.value);
-  })
   page: number;
 
   @IsInt()
-  @Transform((params) => {
-    return parseInt(params.value);
-  })
   per_page: number;
 
   @IsIn(OrderList)
@@ -22,9 +16,9 @@ export class ListPagingSortingFilteringDto {
   order_by: string;
 
   @IsOptional()
-  @IsJSON()
+  @IsObject()
   @Transform((params) => {
-    return JSON.parse(params.value);
+    return params.value;
   })
   filter: IFilter;
 }

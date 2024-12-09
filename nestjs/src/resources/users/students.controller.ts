@@ -1,4 +1,7 @@
 import { Prisma } from '.prisma/client/index';
+import { PrismaService } from '@/prisma/prisma.service';
+import { Resource } from '@decorators/is_resource.decorator';
+import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
 import {
   Body,
   ConflictException,
@@ -11,17 +14,23 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { omit } from 'lodash';
 import { ListPagingSortingFilteringDto } from 'src/common/dtos/get-list-paging.dto';
 import { ManyIdsDto } from '../../common/dtos/many-ids.dto';
 import { handleFilter } from '../../common/helpers';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
-import { omit } from 'lodash';
+
+const RESOURCE = 'student';
 
 @Controller('students')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+@Resource(RESOURCE)
+export class StudentsController {
+  constructor(
+    private prisma: PrismaService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -38,26 +47,33 @@ export class UsersController {
         ...createUserDto,
         password,
         user_type: 'STUDENT',
+        full_name: `${createUserDto.first_name} ${createUserDto.last_name}`,
       },
     });
   }
 
   @Get()
-  async findListPaging(@Query() body: ListPagingSortingFilteringDto) {
-    const { filter, order, order_by, page, per_page } = body;
+  async getListPaging(@Query() qr: ListPagingSortingFilteringDto) {
+    const { filter, order, order_by, page, per_page } = qr;
 
     // Validate page and per_page
     const pageNumber = page > 0 ? page : 1;
     const pageSize = per_page > 0 ? per_page : 10;
-
+    const offset = (pageNumber - 1) * pageSize;
     const where: Prisma.UserWhereInput = {};
 
-    handleFilter(where, filter, { dateFields: ['created_at', 'dob'] });
+    handleFilter(where, filter, {
+      dateFields: ['created_at', 'dob'],
+      searchFields: ['phone', 'email'],
+      fullTextSearchFields: ['full_name'],
+    });
+
+    where.user_type = 'STUDENT';
 
     // Fetch data using the service
     const [data, total] = await Promise.all([
       this.usersService.userModel.findMany({
-        skip: (pageNumber - 1) * pageSize,
+        skip: offset,
         take: pageSize,
         where,
         orderBy: { [order_by as any]: order },
@@ -71,9 +87,7 @@ export class UsersController {
         },
       }),
       this.usersService.userModel.count({
-        where: {
-          deleted_at: null,
-        },
+        where,
       }),
     ]);
 
@@ -88,26 +102,71 @@ export class UsersController {
     };
   }
 
+  @ThrowNotFoundOrReturn(RESOURCE)
+  @Get('get-many')
+  getMany(@Query() qr: ManyIdsDto) {
+    return this.usersService.userModel.findMany({
+      where: { id: { in: qr.ids } },
+      include: {
+        generation: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  @ThrowNotFoundOrReturn(RESOURCE)
+  @Get(':id/representation')
+  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+    const match = await this.usersService.userModel.findUnique({
+      where: { id, user_type: 'STUDENT' },
+      include: {
+        generation: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+    return match?.full_name;
+  }
+
+  @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.userModel.findUnique({ where: { id } });
+  getOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.userModel.findUnique({
+      where: { id, user_type: 'STUDENT' },
+      include: {
+        generation: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
   }
 
   @Patch('update-many')
   updateMany(@Query() qr: ManyIdsDto, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.userModel.updateMany({
-      where: { id: { in: qr.ids } },
+      where: { id: { in: qr.ids }, user_type: 'STUDENT' },
       data: updateUserDto,
     });
   }
 
+  @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.userModel.update({
-      where: { id },
+      where: { id, user_type: 'STUDENT' },
       data: updateUserDto,
     });
   }
@@ -115,17 +174,18 @@ export class UsersController {
   @Delete('delete-many')
   removeMany(@Query() qr: ManyIdsDto) {
     return this.usersService.userModel.updateMany({
-      where: { id: { in: qr.ids } },
+      where: { id: { in: qr.ids }, user_type: 'STUDENT' },
       data: {
         deleted_at: new Date().toISOString(),
       },
     });
   }
 
+  @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.update({
-      where: { id },
+      where: { id, user_type: 'STUDENT' },
       data: { deleted_at: new Date().toISOString() },
     });
   }

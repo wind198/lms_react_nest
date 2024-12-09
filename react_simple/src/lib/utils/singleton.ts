@@ -9,9 +9,11 @@ const apiHttpClient = axios.create({
 });
 
 apiHttpClient.interceptors.request.use(async function (config) {
-  const jwt = await getJWT(JWT_ENCRYPT_SECRET_KEY);
-  if (jwt) {
-    config.headers.Authorization = "Bearer " + jwt;
+  if (!config.headers.Authorization) {
+    const jwt = await getJWT(JWT_ENCRYPT_SECRET_KEY);
+    if (jwt) {
+      config.headers.Authorization = "Bearer " + jwt;
+    }
   }
   return config;
 });

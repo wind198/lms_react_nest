@@ -1,18 +1,23 @@
-import { ItemType } from "antd/es/breadcrumb/Breadcrumb";
 import { create } from "zustand";
+export type IBreadcrumbsItemType = {
+  key: string;
+  label: string;
+  to: string;
+};
+
 type IPageMetaStore = {
   pageTitle?: string;
-  breadcrumbs?: ItemType[];
+  breadcrumbs?: IBreadcrumbsItemType[];
   setPageTitle: (v: string) => void;
-  setBreadcrumbs: (v: ItemType[]) => void;
+  setBreadcrumbs: (v: IBreadcrumbsItemType[]) => void;
 };
 
 const usePageMetaStore = create<IPageMetaStore>((set) => {
   return {
-    setPageTitle(v) {
+    setPageTitle: (v) => {
       set({ pageTitle: v });
     },
-    setBreadcrumbs(v: ItemType[]) {
+    setBreadcrumbs: (v: IBreadcrumbsItemType[]) => {
       set({ breadcrumbs: v });
     },
     breadcrumbs: [],

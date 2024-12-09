@@ -10,6 +10,6 @@ export class TempKeysService {
   tempKeysModel: Prisma.TempKeyDelegate<DefaultArgs>;
 
   constructor(private prisma: PrismaService) {
-    this.tempKeysModel = prisma.tempKey;
+    this.tempKeysModel = prisma.client.tempKey;
   }
 }
