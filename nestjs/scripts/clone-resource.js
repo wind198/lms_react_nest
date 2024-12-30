@@ -10,8 +10,8 @@ const OLD = {
   resourcePlural: 'majors',
 };
 const NEW = {
-  resource: 'roomSetting',
-  resourcePlural: 'roomSettings',
+  resource: 'class',
+  resourcePlural: 'classes',
 };
 
 function copyDirectory(src, dest, replacements) {

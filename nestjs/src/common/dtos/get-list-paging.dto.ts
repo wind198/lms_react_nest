@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsInt, IsJSON, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsInt, IsObject, IsOptional, IsString } from 'class-validator';
 import { IFilter, IOrder, OrderList } from 'src/common/types';
 
 export class ListPagingSortingFilteringDto {

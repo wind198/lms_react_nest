@@ -1,50 +1,52 @@
-import { DescriptionFielsDto } from '@dtos/description-fields.dto';
+import { DescriptionFieldsDto } from '@dtos/description-fields.dto';
 import {
   IRoomOpenTimeCoreField,
   IRoomSettingCoreField,
 } from '@resources/roomSettings/entities/room-setting.entity';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsArray,
-  IsDateString,
   IsInt,
+  IsOptional,
+  IsString,
   Min,
-  MinLength,
   ValidateNested,
 } from 'class-validator';
 
 export class CreateRoomSettingDto
-  extends DescriptionFielsDto
+  extends DescriptionFieldsDto
   implements IRoomSettingCoreField
 {
-  @IsInt({ each: true })
-  dates_off: number[];
+  @IsOptional()
+  @IsString({ each: true })
+  dates_off: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  dates_off_once: string[];
 
   @IsInt()
   @Min(1)
   capacity: number;
 
   @IsArray()
-  @MinLength(1)
+  @ArrayMinSize(1)
   @ValidateNested()
   @Type(() => RoomOpenTime)
   openTimes: RoomOpenTime[];
 }
 
 class RoomOpenTime implements Omit<IRoomOpenTimeCoreField, 'room_setting_id'> {
-  @MinLength(1)
+  @ArrayMinSize(1)
   @IsInt({ each: true })
   week_days: number[];
 
-  @IsDateString()
-  @Transform((p) => {
-    return new Date(p.value);
-  })
-  start_time: Date;
+  @Min(0)
+  @IsInt()
+  start_time: number;
 
-  @IsDateString()
-  @Transform((p) => {
-    return new Date(p.value);
-  })
-  end_time: Date;
+  @Min(0)
+  @IsInt()
+  end_time: number;
 }

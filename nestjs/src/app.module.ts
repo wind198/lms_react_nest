@@ -23,6 +23,7 @@ import { CoursesModule } from '@resources/courses/courses.module';
 import { MajorsService } from '@resources/majors/majors.service';
 import { CoursesService } from '@resources/courses/courses.service';
 import { RoomsService } from '@resources/rooms/rooms.service';
+import { ClassSessionsModule } from './resources/class-sessions/class-sessions.module';
 @Module({
   imports: [
     MailerModule.forRoot({
@@ -49,6 +50,7 @@ import { RoomsService } from '@resources/rooms/rooms.service';
     RoomSettingsModule,
     MajorsModule,
     CoursesModule,
+    ClassSessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

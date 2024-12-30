@@ -1,10 +1,10 @@
 import { MAX_ADDRESS_LEN } from '@/common/constants/validation/index';
-import { DescriptionFielsDto } from '@dtos/description-fields.dto';
+import { DescriptionFieldsDto } from '@dtos/description-fields.dto';
 import { IRoomCoreField } from '@resources/rooms/entities/room.entity';
 import { IsInt, IsString, MaxLength } from 'class-validator';
 
 export class CreateRoomDto
-  extends DescriptionFielsDto
+  extends DescriptionFieldsDto
   implements IRoomCoreField
 {
   @IsInt()

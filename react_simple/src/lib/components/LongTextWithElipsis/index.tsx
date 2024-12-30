@@ -17,7 +17,7 @@ export default function LongTextWithElipsis(props: IProps) {
     [limit, text]
   );
 
-  const showButton = text.length > limit;
+  const showButton = text?.length > limit;
 
   return (
     <div className="long-text-with-elipsis">

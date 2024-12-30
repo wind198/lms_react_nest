@@ -72,6 +72,11 @@ export class RoomsController {
         take: pageSize,
         where,
         orderBy: { [order_by as any]: order },
+        include: {
+          room_setting: {
+            include: { room_open_times: true },
+          },
+        },
       }),
       this.roomsService.roomModel.count({
         where,
@@ -111,11 +116,9 @@ export class RoomsController {
   getOne(@Param('id', ParseIntPipe) id: number) {
     return this.roomsService.roomModel.findUnique({
       where: { id },
-      select: {
+      include: {
         room_setting: {
-          include: {
-            room_optime_times: true,
-          },
+          include: { room_open_times: true },
         },
       },
     });

@@ -6,16 +6,29 @@ import useDataPaginationLogic from "@/lib/hooks/useDataPaginationLogic";
 import useFormatDateTime from "@/lib/hooks/useFormatDateTime";
 import useGetList from "@/lib/hooks/useGetList";
 import { IHasResource, IStringOrNumber } from "@/lib/types/common.type";
+import { IRoomOpenTime } from "@/lib/types/entities/room-open-time.entity";
 import { IRoomSetting } from "@/lib/types/entities/room-setting.entity";
-import { onClickToTargetInnerLink } from "@/lib/utils/helpers";
-import { CheckOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  formatOpenTimes,
+  isConsecutiveSequence,
+  onClickToTargetInnerLink,
+  renderHourStringFromMinuteCount,
+  WeekdayList,
+} from "@/lib/utils/helpers";
+import {
+  CheckOutlined,
+  ClockCircleTwoTone,
+  PlusOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   DatePicker,
   Flex,
+  Space,
   Table,
   TablePaginationConfig,
   Tag,
+  Typography,
 } from "antd";
 import {
   FilterValue,
@@ -23,7 +36,7 @@ import {
   TableCurrentDataSource,
 } from "antd/es/table/interface";
 import dayjs from "dayjs";
-import { startCase } from "lodash-es";
+import { groupBy, last, startCase } from "lodash-es";
 import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -56,11 +69,31 @@ export default function ListRoomSettings() {
 
   const { formatDateCommon } = useFormatDateTime();
 
+  const renderRoomOpenTimes = useCallback((openTimes: IRoomOpenTime[]) => {
+    if (!openTimes?.length) {
+      return null;
+    }
+
+    return (
+      <Space size={"small"}>
+        {formatOpenTimes(openTimes).map((i) => (
+          <Flex key={i.week_days_label}>
+            {i.week_days_label}{" "}
+            <ClockCircleTwoTone style={{ margin: "0 6px" }} />{" "}
+            {i.time.join(", ")}
+          </Flex>
+        ))}
+      </Space>
+    );
+  }, []);
+
   const renderCellValue = useCallback(
     (field: string, value: any, record: IRoomSetting) => {
       switch (field) {
         case "created_at":
           return formatDateCommon(value);
+        case "room_open_times":
+          return renderRoomOpenTimes(value);
         case "description": {
           const title = `${field} of ${record.title}`;
 
@@ -70,7 +103,7 @@ export default function ListRoomSettings() {
           return value;
       }
     },
-    [formatDateCommon]
+    [formatDateCommon, renderRoomOpenTimes]
   );
 
   const onChange = useCallback(
@@ -206,21 +239,26 @@ export default function ListRoomSettings() {
           onClick: () => onRowClick(record), // Bind the click event
         })}
       >
-        {(["title", "description", "capacity"] as (keyof IRoomSetting)[]).map(
-          (field) => {
-            return (
-              <Table.Column
-                sorter
-                title={renderCellTitle(field as string)}
-                dataIndex={field}
-                key={field}
-                render={(value: any, record: IRoomSetting) => {
-                  return renderCellValue(field, value, record);
-                }}
-              />
-            );
-          }
-        )}
+        {(
+          [
+            "title",
+            "description",
+            "capacity",
+            "room_open_times",
+          ] as (keyof IRoomSetting)[]
+        ).map((field) => {
+          return (
+            <Table.Column
+              sorter
+              title={renderCellTitle(field as string)}
+              dataIndex={field}
+              key={field}
+              render={(value: any, record: IRoomSetting) => {
+                return renderCellValue(field, value, record);
+              }}
+            />
+          );
+        })}
       </Table>
     </Flex>
   );

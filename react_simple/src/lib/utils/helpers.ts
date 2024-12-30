@@ -2,6 +2,8 @@ import dayjs, { ConfigType } from "dayjs";
 import { parse } from "qs";
 import { IOrder, ISearchParamObj, IStringOrNumber } from "../types/common.type";
 import { SortOrder } from "antd/es/table/interface";
+import { groupBy, last } from "lodash-es";
+import { IRoomOpenTime } from "@/lib/types/entities/room-open-time.entity";
 
 /**
  * HELPERS
@@ -114,4 +116,83 @@ export const reverseOrder = (i: IOrder | undefined): IOrder | undefined => {
     return "desc";
   }
   return "asc";
+};
+
+// i in format HH:mm
+export const countMinuteFromHourString = (i: string) => {
+  if (!i.match(/\d{2}:\d{2}/)) {
+    throw "Invalid hour string";
+  }
+  const [hour, minute] = i.split(":").map((i) => parseInt(i));
+  return hour * 60 + minute;
+};
+
+export const isConsecutiveSequence = (input: number[]) => {
+  if (!input?.length) {
+    throw "Invalid sequence length";
+  }
+  if (input.length <= 1) {
+    return true;
+  }
+  for (let k = 0; k < input.length - 1; k++) {
+    const element = input[k];
+    const nextElement = input[k + 1];
+    if (nextElement !== element + 1) {
+      return false;
+    }
+  }
+  return true;
+};
+
+export const WeekdayList = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+export const renderHourStringFromMinuteCount = (
+  minuteCount: number
+): string => {
+  const hour = Math.floor(minuteCount / 60);
+  const minute = minuteCount % 60;
+  return `${hour.toString().padStart(2, "0")}:${minute
+    .toString()
+    .padStart(2, "0")}`;
+};
+
+export const formatOpenTimes = (openTimes: IRoomOpenTime[]) => {
+  if (!openTimes?.length) {
+    return [];
+  }
+  const formatedOpenTimes = openTimes.map(
+    ({ week_days, start_time, end_time }) => {
+      if (isConsecutiveSequence(week_days)) {
+        return {
+          week_days_label: [
+            WeekdayList[week_days[0]],
+            WeekdayList[last(week_days)!],
+          ].join(" → "),
+          time: [start_time, end_time]
+            .map((i) => renderHourStringFromMinuteCount(i))
+            .join(" → "),
+        };
+      }
+      return {
+        week_days_label: week_days
+          .map((weekday) => WeekdayList[weekday])
+          .join(", "),
+        time: `${start_time} to ${end_time}`,
+      };
+    }
+  );
+  return Object.entries(
+    groupBy(formatedOpenTimes, (i) => i.week_days_label)
+  ).map(([k, v]) => ({
+    week_days_label: k,
+    time: v.map((i) => i.time),
+  }));
 };

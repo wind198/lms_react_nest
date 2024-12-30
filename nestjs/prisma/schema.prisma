@@ -69,7 +69,7 @@ model User {
 model Generation {
   id          Int      @id @default(autoincrement())
   title       String
-  description String   @db.Text()
+  description String?  @db.Text()
   year        Int      @db.Year
   students    User[]
   created_at  DateTime @default(now())
@@ -79,7 +79,7 @@ model Generation {
 model Major {
   id          Int      @id @default(autoincrement())
   title       String
-  description String   @db.Text()
+  description String?  @db.Text()
   courses     Course[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -88,7 +88,7 @@ model Major {
 model Course {
   id          Int      @id @default(autoincrement())
   title       String
-  description String   @db.Text()
+  description String?  @db.Text()
   major_id    Int
   major       Major    @relation(fields: [major_id], references: [id])
   classes     Class[]
@@ -97,49 +97,70 @@ model Course {
 }
 
 model Room {
-  id              Int          @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   title           String
-  description     String       @db.Text()
-  address         String       @db.Text()
+  description     String?        @db.Text()
+  address         String         @db.Text()
   room_setting_id Int?
-  room_setting    RoomSetting? @relation(fields: [room_setting_id], references: [id])
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
+  room_setting    RoomSetting?   @relation(fields: [room_setting_id], references: [id])
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+  ClassSession    ClassSession[]
 }
 
 model RoomSetting {
-  id                Int            @id @default(autoincrement())
-  title             String
-  description       String         @db.Text()
-  dates_off         Json
-  dates_off_once         Json
-  capacity          Int
-  room_optime_times RoomOpenTime[]
-  rooms             Room[]
-  created_at        DateTime       @default(now())
-  updated_at        DateTime       @updatedAt
+  id              Int            @id @default(autoincrement())
+  title           String
+  description     String?        @db.Text()
+  dates_off       Json?          @default("[]")
+  dates_off_once  Json?          @default("[]")
+  capacity        Int
+  room_open_times RoomOpenTime[]
+  rooms           Room[]
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
 }
 
 model RoomOpenTime {
   id              Int         @id @default(autoincrement())
   week_days       Json
-  start_time      DateTime    @db.Time()
-  end_time        DateTime    @db.Time()
+  start_time      Int // store as elapsed minutes from 00:00
+  end_time        Int // store as elapsed minutes from 00:00
   room_setting_id Int
   room_setting    RoomSetting @relation(fields: [room_setting_id], references: [id], onDelete: Cascade)
   created_at      DateTime    @default(now())
   updated_at      DateTime    @updatedAt
 }
 
+enum ClassStatus {
+  RUNNING
+  PENDING
+  STOPPED
+  FINISHED
+}
+
 model Class {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String   @db.Text()
-  code        String?
-  course_id   Int
-  course      Course   @relation(fields: [course_id], references: [id], onDelete: Restrict)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id           Int            @id @default(autoincrement())
+  title        String
+  description  String?        @db.Text()
+  code         String?
+  course_id    Int
+  course       Course         @relation(fields: [course_id], references: [id], onDelete: Restrict)
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  status       ClassStatus    @default(value: PENDING)
+  ClassSession ClassSession[]
+}
+
+model ClassSession {
+  id         Int      @id @default(autoincrement())
+  class_id   Int
+  class      Class    @relation(fields: [class_id], references: [id], onDelete: Restrict)
+  room_id    Int
+  room       Room     @relation(fields: [room_id], references: [id])
+  start_time Int // store as elapsed minutes from 00:00 
+  end_time   Int // store as elapsed minutes from 00:00
+  date       DateTime @db.Date //Format YYYY-MM-DD
 }
 
 enum TempKeyPurpose {

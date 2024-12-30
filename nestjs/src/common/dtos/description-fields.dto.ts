@@ -2,13 +2,14 @@ import {
   MAX_DESCRIPTION_LEN,
   MAX_TITLE_LEN,
 } from '@/common/constants/validation/index';
-import { IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class DescriptionFielsDto {
+export class DescriptionFieldsDto {
   @IsString()
   @MaxLength(MAX_TITLE_LEN)
   title: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(MAX_DESCRIPTION_LEN)
   description: string;

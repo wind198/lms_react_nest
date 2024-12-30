@@ -23,7 +23,7 @@ export type IQueryListParams = {
   per_page: number;
   order: IOrder;
   order_by: string;
-  filter: string;
+  filter: Record<string, any>;
 };
 
 export type IHasId = { id: number };
@@ -52,4 +52,4 @@ export type IActivable = {
 };
 export type ISearchParamObj = Record<string, any>;
 
-export type IMultiple = {multiple?: boolean}
+export type IMultiple = { multiple?: boolean };

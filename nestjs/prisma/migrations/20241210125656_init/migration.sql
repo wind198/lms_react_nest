@@ -34,7 +34,7 @@ CREATE TABLE `User` (
 CREATE TABLE `Generation` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
+    `description` TEXT NULL,
     `year` YEAR NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE `Generation` (
 CREATE TABLE `Major` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
+    `description` TEXT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 
@@ -57,7 +57,7 @@ CREATE TABLE `Major` (
 CREATE TABLE `Course` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
+    `description` TEXT NULL,
     `major_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE `Course` (
 CREATE TABLE `Room` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
+    `description` TEXT NULL,
     `address` TEXT NOT NULL,
     `room_setting_id` INTEGER NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -82,8 +82,9 @@ CREATE TABLE `Room` (
 CREATE TABLE `RoomSetting` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
-    `dates_off` JSON NOT NULL,
+    `description` TEXT NULL,
+    `dates_off` JSON NULL,
+    `dates_off_once` JSON NULL,
     `capacity` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -95,8 +96,8 @@ CREATE TABLE `RoomSetting` (
 CREATE TABLE `RoomOpenTime` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `week_days` JSON NOT NULL,
-    `start_time` TIME NOT NULL,
-    `end_time` TIME NOT NULL,
+    `start_time` INTEGER NOT NULL,
+    `end_time` INTEGER NOT NULL,
     `room_setting_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -108,7 +109,7 @@ CREATE TABLE `RoomOpenTime` (
 CREATE TABLE `Class` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
-    `description` TEXT NOT NULL,
+    `description` TEXT NULL,
     `code` VARCHAR(191) NULL,
     `course_id` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

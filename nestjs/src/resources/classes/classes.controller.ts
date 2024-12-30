@@ -10,41 +10,43 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   Query,
 } from '@nestjs/common';
-import { CreateRoomSettingDto } from '@resources/roomSettings/dto/create-room-setting.dto';
-import { UpdateRoomSettingDto } from '@resources/roomSettings/dto/update-room-setting.dto';
-import { RoomSettingsService } from '@resources/roomSettings/room-settings.service';
+import { CreateClassDto } from '@resources/classes/dto/create-class.dto';
+import { UpdateClassDto } from '@resources/classes/dto/update-class.dto';
+import { ClassesService } from '@resources/classes/classes.service';
 import { ListPagingSortingFilteringDto } from 'src/common/dtos/get-list-paging.dto';
+import { CoursesService } from '@resources/courses/courses.service';
 
-const RESOURCE = 'room-setting';
+const RESOURCE = 'class';
 
-@Controller('room-settings')
+@Controller('classes')
 @Resource(RESOURCE)
-export class RoomSettingsController {
+export class ClassesController {
   constructor(
     private prisma: PrismaService,
-    private readonly roomSettingsService: RoomSettingsService,
+    private readonly classesService: ClassesService,
+    private readonly courseService: CoursesService,
   ) {}
 
   @Post()
-  async create(@Body() createRoomSettingDto: CreateRoomSettingDto) {
-    const { openTimes, ...o } = createRoomSettingDto;
-
-    return await this.roomSettingsService.roomSettingModel.create({
-      data: {
-        capacity: o.capacity,
-        description: o.description,
-        title: o.title,
-        dates_off: o.dates_off,
-        room_open_times: {
-          createMany: { data: openTimes },
-        },
-      },
+  async create(@Body() createClassDto: CreateClassDto) {
+    const { course_id } = createClassDto;
+    if (
+      course_id &&
+      !(await this.courseService.courseModel.findUnique({
+        where: { id: course_id },
+      }))
+    ) {
+      throw new NotFoundException(`Course with id ${course_id} not found`);
+    }
+    return await this.classesService.classModel.create({
+      data: createClassDto,
     });
   }
 
@@ -56,7 +58,7 @@ export class RoomSettingsController {
     const pageNumber = page > 0 ? page : 1;
     const pageSize = per_page > 0 ? per_page : 10;
     const offset = (pageNumber - 1) * pageSize;
-    const where: Prisma.RoomSettingWhereInput = {};
+    const where: Prisma.ClassWhereInput = {};
 
     handleFilter(where, filter, {
       dateFields: ['created_at'],
@@ -65,16 +67,13 @@ export class RoomSettingsController {
 
     // Fetch data using the service
     const [data, total] = await Promise.all([
-      this.roomSettingsService.roomSettingModel.findMany({
+      this.classesService.classModel.findMany({
         skip: offset,
         take: pageSize,
         where,
         orderBy: { [order_by as any]: order },
-        include: {
-          room_open_times: true,
-        },
       }),
-      this.roomSettingsService.roomSettingModel.count({
+      this.classesService.classModel.count({
         where,
       }),
     ]);
@@ -93,16 +92,15 @@ export class RoomSettingsController {
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get('get-many')
   getMany(@Query() qr: ManyIdsDto) {
-    return this.roomSettingsService.roomSettingModel.findMany({
+    return this.classesService.classModel.findMany({
       where: { id: { in: qr.ids } },
-      include: { room_open_times: true },
     });
   }
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
   async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
-    const match = await this.roomSettingsService.roomSettingModel.findUnique({
+    const match = await this.classesService.classModel.findUnique({
       where: { id },
     });
     return match?.title;
@@ -111,20 +109,16 @@ export class RoomSettingsController {
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id')
   getOne(@Param('id', ParseIntPipe) id: number) {
-    return this.roomSettingsService.roomSettingModel.findUnique({
+    return this.classesService.classModel.findUnique({
       where: { id },
-      include: { room_open_times: true },
     });
   }
 
   @Patch('update-many')
-  updateMany(
-    @Query() qr: ManyIdsDto,
-    @Body() updateRoomSettingDto: UpdateRoomSettingDto,
-  ) {
-    return this.roomSettingsService.roomSettingModel.updateMany({
+  updateMany(@Query() qr: ManyIdsDto, @Body() updateClassDto: UpdateClassDto) {
+    return this.classesService.classModel.updateMany({
       where: { id: { in: qr.ids } },
-      data: updateRoomSettingDto,
+      data: updateClassDto,
     });
   }
 
@@ -132,21 +126,20 @@ export class RoomSettingsController {
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateRoomSettingDto: UpdateRoomSettingDto,
+    @Body() updateClassDto: UpdateClassDto,
   ) {
-    return this.roomSettingsService.roomSettingModel.update({
+    return this.classesService.classModel.update({
       where: { id },
-      data: updateRoomSettingDto,
-      include: { room_open_times: true },
+      data: updateClassDto,
     });
   }
 
   @Delete('delete-many')
   async removeMany(@Query() qr: ManyIdsDto) {
-    const matches = await this.roomSettingsService.roomSettingModel.findMany({
+    const matches = await this.classesService.classModel.findMany({
       where: { id: { in: qr.ids } },
       include: {
-        rooms: {
+        course: {
           select: {
             id: true,
           },
@@ -154,12 +147,10 @@ export class RoomSettingsController {
       },
     });
 
-    if (matches.some((i) => i.rooms.length > 0)) {
-      throw new ConflictException(
-        'Cannot delete room setting with related room.',
-      );
+    if (matches.some((i) => i.status === 'RUNNING')) {
+      throw new ConflictException('Cannot delete running class.');
     }
-    return this.roomSettingsService.roomSettingModel.deleteMany({
+    return this.classesService.classModel.deleteMany({
       where: { id: { in: qr.ids } },
     });
   }
@@ -167,10 +158,10 @@ export class RoomSettingsController {
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
-    const match = await this.roomSettingsService.roomSettingModel.findUnique({
+    const match = await this.classesService.classModel.findUnique({
       where: { id },
       include: {
-        rooms: {
+        course: {
           select: {
             id: true,
           },
@@ -181,13 +172,11 @@ export class RoomSettingsController {
     if (!match) {
       return null;
     }
-    if (match.rooms.length) {
-      throw new ConflictException(
-        'Cannot delete room setting with related room.',
-      );
+    if (match.status === 'RUNNING') {
+      return new ConflictException(`Cannot remove running class`);
     }
 
-    return this.roomSettingsService.roomSettingModel.delete({
+    return this.classesService.classModel.delete({
       where: { id },
     });
   }
