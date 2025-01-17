@@ -1,5 +1,12 @@
 import { Prisma } from '.prisma/client/index';
 import { handleFilter } from '@/common/helpers/index';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Resource } from '@decorators/is_resource.decorator';
 import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
@@ -19,14 +26,20 @@ import {
 import { CreateRoomDto } from '@resources/rooms/dto/create-room.dto';
 import { UpdateRoomDto } from '@resources/rooms/dto/update-room.dto';
 import { RoomsService } from '@resources/rooms/rooms.service';
-import { omit } from 'lodash';
 import { ListPagingSortingFilteringDto } from 'src/common/dtos/get-list-paging.dto';
 
 const RESOURCE = 'room';
 
 @Controller('rooms')
 @Resource(RESOURCE)
-export class RoomsController {
+export class RoomsController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly roomsService: RoomsService,
@@ -104,7 +117,7 @@ export class RoomsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.roomsService.roomModel.findUnique({
       where: { id },
     });
@@ -149,7 +162,7 @@ export class RoomsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
-  async update(
+  async updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRoomDto: UpdateRoomDto,
   ) {
@@ -193,7 +206,7 @@ export class RoomsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async removeOne(@Param('id', ParseIntPipe) id: number) {
     // const match = await this.roomsService.roomModel.findUnique({
     //   where: { id },
     //   include: {

@@ -1,10 +1,7 @@
 import { NotificationContext } from "@/App";
 import useApiHttpClient from "@/lib/hooks/useHttpClient";
 import useIsEditPage from "@/lib/hooks/useIsEditPage";
-import {
-  IMajorCoreField,
-  makeRandomMajor,
-} from "@/lib/types/entities/major.entity";
+import { IClassCoreField, makeRandomClass } from "@/lib/types/entities/class.entity";
 import { IS_DEV } from "@/lib/utils/constants";
 import { getOneUrl } from "@/lib/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,12 +11,12 @@ import { useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router";
 
-type IFormData = IMajorCoreField;
+type IFormData = IClassCoreField;
 
-const resource = "major";
-const resourcePlural = "majors";
+const resource = "class";
+const resourcePlural = "classes";
 
-const CreateMajor = () => {
+const Createclass = () => {
   const [form] = Form.useForm<IFormData>();
 
   const { $post, $patch } = useApiHttpClient();
@@ -110,7 +107,7 @@ const CreateMajor = () => {
             <Button
               loading={isPending}
               onClick={() => {
-                form.setFieldsValue(makeRandomMajor());
+                form.setFieldsValue(makeRandomClass());
               }}
               type="default"
               htmlType="button"
@@ -129,4 +126,4 @@ const CreateMajor = () => {
   );
 };
 
-export default CreateMajor;
+export default Createclass;

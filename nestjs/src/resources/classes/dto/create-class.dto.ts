@@ -5,7 +5,7 @@ import {
 import { IClassCoreField } from '@resources/classes/entities/class.entity';
 import { IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class CreateClassDto implements IClassCoreField {
+export class CreateClassDto implements Omit<IClassCoreField, 'status'> {
   @IsOptional()
   @IsString()
   code: string;

@@ -10,7 +10,14 @@ function ResourceAutocomplete<T extends IHasId>(
   props: IProps<T>,
   ref: ForwardedRef<any>
 ) {
-  const { representation, resource, resourcePlural = resource + "s" } = props;
+  const {
+    representation,
+    resource,
+    resourcePlural = resource + "s",
+    onChange,
+    value: $value,
+    ...o
+  } = props;
 
   const [search, setSearch] = useState("");
 
@@ -22,43 +29,48 @@ function ResourceAutocomplete<T extends IHasId>(
     resourcePlural: resourcePlural,
   });
 
+  const valueLabel = useMemo(() => {
+    if (!$value || !data?.data?.length) {
+      return "";
+    }
+    return data?.data.find(({ id }) => id === $value)?.[representation] ?? "";
+  }, [$value, data?.data, representation]);
+
   const options = useMemo(() => {
-    return data?.data?.map((i) => {
-      return {
-        label: i.id,
-        value: i[representation] as string,
-      };
-    });
+    return (
+      data?.data?.map((i) => {
+        const label = i[representation] as string;
+
+        return {
+          label,
+          value: label,
+          key: i.id,
+        };
+      }) ?? []
+    );
   }, [data?.data, representation]);
 
   const onSearch = debounce((v: string) => setSearch(v), 500);
 
-  const [value, setValue] = useState<null | IStringOrNumber>(null);
-
-  const displayValue = useMemo(
-    () => options?.find((i) => i.value === value)?.label,
-    [options, value]
-  );
-
   return (
     <AutoComplete
-      onSelect={(v) => {
-        setValue(v);
-      }}
-      value={value}
+      value={valueLabel}
       onSearch={onSearch}
       options={options}
       ref={ref}
-       getInputElement={}
-      
-      {...props}
+      onChange={(_, option) => {
+        if (onChange) {
+          // @ts-expect-error
+          onChange(option.key, option);
+        }
+      }}
+      {...o}
     >
       <Input placeholder="Type to search"></Input>
     </AutoComplete>
   );
 }
 
-// @ts-expect-error
 export default forwardRef(ResourceAutocomplete) as <T>(
   props: IProps<T> & { ref?: React.ForwardedRef<any> }
 ) => ReturnType<typeof ResourceAutocomplete>;

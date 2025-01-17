@@ -5,6 +5,7 @@ import { IRoomSetting } from "@/lib/types/entities/room-setting.entity";
 export type IRoomCoreField = {} & IHasDescriptiveFields & {
     address: string;
     room_setting: IRoomSetting;
+    capacity: number;
   };
 
 export type IRoom = IRoomCoreField & IHasId & ITimeStamp;

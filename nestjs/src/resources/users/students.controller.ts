@@ -21,12 +21,26 @@ import { handleFilter } from '../../common/helpers';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 
 const RESOURCE = 'student';
 
 @Controller('students')
 @Resource(RESOURCE)
-export class StudentsController {
+export class StudentsController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -106,7 +120,7 @@ export class StudentsController {
   @Get('get-many')
   getMany(@Query() qr: ManyIdsDto) {
     return this.usersService.userModel.findMany({
-      where: { id: { in: qr.ids } },
+      where: { id: { in: qr.ids }, user_type: 'STUDENT' },
       include: {
         generation: {
           select: {
@@ -120,7 +134,7 @@ export class StudentsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.usersService.userModel.findUnique({
       where: { id, user_type: 'STUDENT' },
       include: {
@@ -161,7 +175,7 @@ export class StudentsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
-  update(
+  updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
@@ -183,7 +197,7 @@ export class StudentsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  removeOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.update({
       where: { id, user_type: 'STUDENT' },
       data: { deleted_at: new Date().toISOString() },

@@ -158,9 +158,8 @@ model ClassSession {
   class      Class    @relation(fields: [class_id], references: [id], onDelete: Restrict)
   room_id    Int
   room       Room     @relation(fields: [room_id], references: [id])
-  start_time Int // store as elapsed minutes from 00:00 
-  end_time   Int // store as elapsed minutes from 00:00
-  date       DateTime @db.Date //Format YYYY-MM-DD
+  start_time DateTime @db.DateTime()
+  end_time   DateTime @db.DateTime()
 }
 
 enum TempKeyPurpose {

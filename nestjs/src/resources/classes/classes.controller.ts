@@ -22,12 +22,26 @@ import { UpdateClassDto } from '@resources/classes/dto/update-class.dto';
 import { ClassesService } from '@resources/classes/classes.service';
 import { ListPagingSortingFilteringDto } from 'src/common/dtos/get-list-paging.dto';
 import { CoursesService } from '@resources/courses/courses.service';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 
 const RESOURCE = 'class';
 
 @Controller('classes')
 @Resource(RESOURCE)
-export class ClassesController {
+export class ClassesController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly classesService: ClassesService,
@@ -99,7 +113,7 @@ export class ClassesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.classesService.classModel.findUnique({
       where: { id },
     });
@@ -124,7 +138,7 @@ export class ClassesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
-  update(
+  updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateClassDto: UpdateClassDto,
   ) {
@@ -157,7 +171,7 @@ export class ClassesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async removeOne(@Param('id', ParseIntPipe) id: number) {
     const match = await this.classesService.classModel.findUnique({
       where: { id },
       include: {

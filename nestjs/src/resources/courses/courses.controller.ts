@@ -1,5 +1,12 @@
 import { Prisma } from '.prisma/client/index';
 import { handleFilter } from '@/common/helpers/index';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Resource } from '@decorators/is_resource.decorator';
 import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
@@ -17,17 +24,23 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { CoursesService } from '@resources/courses/courses.service';
 import { CreateCourseDto } from '@resources/courses/dto/create-course.dto';
 import { UpdateCourseDto } from '@resources/courses/dto/update-course.dto';
-import { CoursesService } from '@resources/courses/courses.service';
-import { omit } from 'lodash';
 import { ListPagingSortingFilteringDto } from 'src/common/dtos/get-list-paging.dto';
 
 const RESOURCE = 'course';
 
 @Controller('courses')
 @Resource(RESOURCE)
-export class CoursesController {
+export class CoursesController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly coursesService: CoursesService,
@@ -99,7 +112,7 @@ export class CoursesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.coursesService.courseModel.findUnique({
       where: { id },
     });
@@ -137,7 +150,7 @@ export class CoursesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
-  async update(
+  async updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateCourseDto: UpdateCourseDto,
   ) {
@@ -185,7 +198,7 @@ export class CoursesController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async removeOne(@Param('id', ParseIntPipe) id: number) {
     const match = await this.coursesService.courseModel.findUnique({
       where: { id },
       include: {

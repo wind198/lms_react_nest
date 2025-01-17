@@ -26,19 +26,19 @@ import MajorDetail from "@/routes/study/majors/[id]";
 import ShowMajor from "@/routes/study/majors/[id]/index";
 import Courses from "@/routes/courses";
 import ListCourses from "@/routes/study/courses/index";
-import CreateCourse from "@/routes/study/majors/create";
 import CourseDetail from "@/routes/study/courses/[id]";
 import ShowCourse from "@/routes/study/courses/[id]/index";
-import Rooms from "@/routes/rooms";
+import Rooms from "@/routes/study/rooms";
 import ListRooms from "@/routes/study/rooms/index";
 import CreateRoom from "@/routes/study/rooms/create";
 import RoomDetail from "@/routes/study/rooms/[id]";
 import ShowRoom from "@/routes/study/rooms/[id]/index";
-import RoomSettings from "@/routes/room-settings";
+import RoomSettings from "@/routes/study/room-settings";
 import ListRoomSettings from "@/routes/study/rooms-settings/index";
 import CreateRoomSetting from "@/routes/study/rooms-settings/create";
 import RoomSettingDetail from "@/routes/study/rooms-settings/[id]";
 import ShowRoomSetting from "@/routes/study/rooms-settings/[id]/index";
+import CreateCourse from "@/routes/study/courses/create";
 
 interface CustomIndexRouteObject extends IndexRouteObject {
   meta?: {

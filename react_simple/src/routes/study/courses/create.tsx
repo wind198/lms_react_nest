@@ -1,4 +1,5 @@
 import { NotificationContext } from "@/App";
+import ResourceAutocomple from "@/lib/components/common/ResourceAutocomple/index";
 import useApiHttpClient from "@/lib/hooks/useHttpClient";
 import useIsEditPage from "@/lib/hooks/useIsEditPage";
 import {
@@ -102,6 +103,9 @@ const CreateCourse = () => {
 
       <Form.Item label="Description" name="description">
         <Input.TextArea rows={3} />
+      </Form.Item>
+      <Form.Item label="Major" name="major_id">
+        <ResourceAutocomple resource="major" representation={"title"} />
       </Form.Item>
 
       <Space size={"small"}>

@@ -1,5 +1,12 @@
 import { Prisma } from '.prisma/client/index';
 import { handleFilter } from '@/common/helpers/index';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Resource } from '@decorators/is_resource.decorator';
 import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
@@ -10,6 +17,7 @@ import {
   Controller,
   Delete,
   Get,
+  InternalServerErrorException,
   Param,
   ParseIntPipe,
   Patch,
@@ -25,7 +33,14 @@ const RESOURCE = 'room-setting';
 
 @Controller('room-settings')
 @Resource(RESOURCE)
-export class RoomSettingsController {
+export class RoomSettingsController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly roomSettingsService: RoomSettingsService,
@@ -90,7 +105,6 @@ export class RoomSettingsController {
     };
   }
 
-  @ThrowNotFoundOrReturn(RESOURCE)
   @Get('get-many')
   getMany(@Query() qr: ManyIdsDto) {
     return this.roomSettingsService.roomSettingModel.findMany({
@@ -101,7 +115,7 @@ export class RoomSettingsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.roomSettingsService.roomSettingModel.findUnique({
       where: { id },
     });
@@ -130,7 +144,7 @@ export class RoomSettingsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Patch(':id')
-  update(
+  updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateRoomSettingDto: UpdateRoomSettingDto,
   ) {
@@ -159,36 +173,62 @@ export class RoomSettingsController {
         'Cannot delete room setting with related room.',
       );
     }
-    return this.roomSettingsService.roomSettingModel.deleteMany({
-      where: { id: { in: qr.ids } },
-    });
+    try {
+      await this.prisma.client.$transaction(async (transaction) => {
+        // Delete RoomOpenTimes explicitly if needed (not required with cascading in the schema)
+        await transaction.roomOpenTime.deleteMany({
+          where: { room_setting_id: { in: qr.ids } },
+        });
+
+        // Delete the RoomSetting
+        await transaction.roomSetting.deleteMany({
+          where: { id: { in: qr.ids } },
+        });
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const match = await this.roomSettingsService.roomSettingModel.findUnique({
-      where: { id },
-      include: {
-        rooms: {
-          select: {
-            id: true,
+  async removeOne(@Param('id', ParseIntPipe) id: number) {
+    const roomSetting =
+      await this.roomSettingsService.roomSettingModel.findUnique({
+        where: { id },
+        include: {
+          rooms: {
+            select: {
+              id: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!match) {
+    if (!roomSetting) {
       return null;
     }
-    if (match.rooms.length) {
+
+    if (roomSetting.rooms.length) {
       throw new ConflictException(
         'Cannot delete room setting with related room.',
       );
     }
+    try {
+      await this.prisma.client.$transaction(async (transaction) => {
+        // Delete RoomOpenTimes explicitly if needed (not required with cascading in the schema)
+        await transaction.roomOpenTime.deleteMany({
+          where: { room_setting_id: id },
+        });
 
-    return this.roomSettingsService.roomSettingModel.delete({
-      where: { id },
-    });
+        // Delete the RoomSetting
+        await transaction.roomSetting.delete({
+          where: { id: id },
+        });
+        return roomSetting;
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 }

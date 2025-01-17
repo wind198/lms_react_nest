@@ -1,4 +1,4 @@
-import { IClass } from "@/lib/types/entities/class.entity";
+import { IClass, IClassCoreField } from "@/lib/types/entities/class.entity";
 import { IHasDescriptiveFields, IHasId, ITimeStamp } from "../common.type";
 import { IRoom } from "@/lib/types/entities/room.entity";
 

@@ -88,7 +88,7 @@ export class MajorsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.majorsService.majorModel.findUnique({
       where: { id },
     });
@@ -146,7 +146,7 @@ export class MajorsController {
 
   @ThrowNotFoundOrReturn(RESOURCE)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async removeOne(@Param('id', ParseIntPipe) id: number) {
     const match = await this.majorsService.majorModel.findUnique({
       where: { id },
       include: {

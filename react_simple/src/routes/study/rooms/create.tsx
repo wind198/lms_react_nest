@@ -1,7 +1,5 @@
 import { NotificationContext } from "@/App";
-import ResourceAutocomplete from "@/lib/components/common/ResourceAutocomple/index";
 import ResourceSelectWithSearch from "@/lib/components/common/ResourceSelectWithSearch/index";
-import useGetList from "@/lib/hooks/useGetList";
 import useApiHttpClient from "@/lib/hooks/useHttpClient";
 import useIsEditPage from "@/lib/hooks/useIsEditPage";
 import { IRoomSetting } from "@/lib/types/entities/room-setting.entity";
@@ -12,9 +10,9 @@ import {
 import { IS_DEV } from "@/lib/utils/constants";
 import { getOneUrl } from "@/lib/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AutoComplete, Button, Form, Input, Space } from "antd";
+import { Button, Form, Input, Space } from "antd";
 import dayjs from "dayjs";
-import { useCallback, useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router";
 

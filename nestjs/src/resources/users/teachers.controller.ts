@@ -20,9 +20,23 @@ import { UsersService } from './users.service';
 import { omit } from 'lodash';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 
 @Controller('teachers')
-export class TeachersController {
+export class TeachersController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -49,7 +63,7 @@ export class TeachersController {
   }
 
   @Get()
-  async findListPaging(@Query() qr: ListPagingSortingFilteringDto) {
+  async getListPaging(@Query() qr: ListPagingSortingFilteringDto) {
     const { filter, order, order_by, page, per_page } = qr;
 
     // Validate page and per_page
@@ -98,9 +112,19 @@ export class TeachersController {
     };
   }
 
+  @Get('get-many')
+  getMany(@Query() qr: ManyIdsDto) {
+    return this.usersService.userModel.findMany({
+      where: {
+        id: { in: qr.ids },
+        user_type: 'TEACHER',
+      },
+    });
+  }
+
   @ThrowNotFoundOrReturn('Teacher')
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.usersService.userModel.findUnique({
       where: { id, user_type: 'TEACHER' },
       include: {
@@ -117,7 +141,7 @@ export class TeachersController {
 
   @ThrowNotFoundOrReturn('Teacher')
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  getOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.findUnique({
       where: { id, user_type: 'TEACHER' },
     });
@@ -133,7 +157,7 @@ export class TeachersController {
 
   @ThrowNotFoundOrReturn('Teacher')
   @Patch(':id')
-  update(
+  updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
@@ -155,7 +179,7 @@ export class TeachersController {
 
   @ThrowNotFoundOrReturn('Teacher')
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  removeOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.update({
       where: { id, user_type: 'TEACHER' },
       data: { deleted_at: new Date().toISOString() },

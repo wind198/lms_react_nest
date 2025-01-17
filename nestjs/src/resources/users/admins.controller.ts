@@ -20,9 +20,23 @@ import { UsersService } from './users.service';
 import { omit } from 'lodash';
 import { PrismaService } from '@/prisma/prisma.service';
 import { ThrowNotFoundOrReturn } from '@decorators/throw-not-found-or-return.decorator';
+import {
+  IHasCreateRoute,
+  IHasDeleteRoute,
+  IHasGetRoute,
+  IHasRepresentationRoute,
+  IHasUpdateRoute,
+} from '@/common/types/index';
 
 @Controller('admins')
-export class AdminsController {
+export class AdminsController
+  implements
+    IHasCreateRoute,
+    IHasGetRoute<true>,
+    IHasUpdateRoute<true>,
+    IHasDeleteRoute<true>,
+    IHasRepresentationRoute
+{
   constructor(
     private prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -49,7 +63,7 @@ export class AdminsController {
   }
 
   @Get()
-  async findListPaging(@Query() qr: ListPagingSortingFilteringDto) {
+  async getListPaging(@Query() qr: ListPagingSortingFilteringDto) {
     const { filter, order, order_by, page, per_page } = qr;
 
     // Validate page and per_page
@@ -100,7 +114,7 @@ export class AdminsController {
 
   @ThrowNotFoundOrReturn('Admin')
   @Get(':id/representation')
-  async findOneRepresentation(@Param('id', ParseIntPipe) id: number) {
+  async getRepresentaion(@Param('id', ParseIntPipe) id: number) {
     const match = await this.usersService.userModel.findUnique({
       where: { id, user_type: 'ADMIN' },
       include: {
@@ -115,9 +129,19 @@ export class AdminsController {
     return match?.full_name;
   }
 
+  @Get('get-many')
+  getMany(@Query() qr: ManyIdsDto) {
+    return this.usersService.userModel.findMany({
+      where: {
+        id: { in: qr.ids },
+        user_type: 'ADMIN',
+      },
+    });
+  }
+
   @ThrowNotFoundOrReturn('Admin')
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  getOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.findUnique({
       where: { id, user_type: 'ADMIN' },
     });
@@ -133,7 +157,7 @@ export class AdminsController {
 
   @ThrowNotFoundOrReturn('Admin')
   @Patch(':id')
-  update(
+  updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
@@ -155,7 +179,7 @@ export class AdminsController {
 
   @ThrowNotFoundOrReturn('Admin')
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  removeOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.userModel.update({
       where: { id, user_type: 'ADMIN' },
       data: { deleted_at: new Date().toISOString() },

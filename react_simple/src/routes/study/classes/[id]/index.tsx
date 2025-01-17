@@ -3,26 +3,25 @@ import NotFound from "@/lib/components/common/NotFoundErr/index";
 import RecordDetailLoading from "@/lib/components/common/RecordDetailLoading/index";
 import UnknownErr from "@/lib/components/common/UnknownErr/index";
 import useGetOne from "@/lib/hooks/useGetOne";
-import useRenderRoomSettingDetails from "@/lib/hooks/useRenderRoomSettingDetails";
-import { IRoomSetting } from "@/lib/types/entities/room-setting.entity";
+import { Iclass } from "@/lib/types/entities/class.entity";
 import { EditOutlined } from "@ant-design/icons";
 import { Button, Descriptions, Flex } from "antd";
 import { useLocation, useNavigate, useParams } from "react-router";
 
-const resource = "room-setting";
-const resourcePlural = "room-settings";
+const resource = "class";
+const resourcePlural = "classes";
 
-const ShowRoomSetting = () => {
+const Showclass = () => {
   const { id } = useParams();
 
   const { state } = useLocation();
 
   const {
-    data: roomSetting,
+    data: class,
     isNotFoundErr,
     isError,
     isLoading,
-  } = useGetOne<IRoomSetting>({
+  } = useGetOne<Iclass>({
     id: id,
     resource,
     resourcePlural,
@@ -30,11 +29,6 @@ const ShowRoomSetting = () => {
   });
 
   const navigate = useNavigate();
-
-  const { roomSettingDetails } = useRenderRoomSettingDetails({
-    roomSetting: roomSetting ?? ({} as any),
-    hideDescriptiveFields: false,
-  });
 
   if (!id) {
     return null;
@@ -49,11 +43,11 @@ const ShowRoomSetting = () => {
   if (isError) {
     return <UnknownErr />;
   }
-  if (!roomSetting) {
+  if (!class) {
     return null;
   }
   return (
-    <div className="show-room-setting">
+    <div className="show-class">
       <Flex style={{ marginBottom: 8 }}>
         <FillSpace />
         <Button
@@ -67,7 +61,7 @@ const ShowRoomSetting = () => {
               },
               {
                 state: {
-                  recordData: roomSetting,
+                  recordData: class,
                 },
               }
             );
@@ -77,10 +71,13 @@ const ShowRoomSetting = () => {
         </Button>
       </Flex>
       <Descriptions bordered size="small" column={1}>
-        {roomSettingDetails}
+        <Descriptions.Item label="Title">{class.title}</Descriptions.Item>
+        <Descriptions.Item label="Description">
+          {class.description}
+        </Descriptions.Item>
       </Descriptions>
     </div>
   );
 };
 
-export default ShowRoomSetting;
+export default Showclass;
